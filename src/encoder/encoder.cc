@@ -574,6 +574,42 @@ vector<uint8_t> Encoder::encode_with_quantizer( const VP8Raster & raster, const 
   }
 }
 
+Segmentation Encoder::detect_roi(const VP8Raster & raster)
+{
+  // TODO: current implementation is for debugging purposed only
+  unsigned macroblock_width = VP8Raster::macroblock_dimension(raster.display_width());
+  unsigned macroblock_height = VP8Raster::macroblock_dimension(raster.display_height());
+
+  /* set a hardcoded segmentation map */
+  Segmentation s(macroblock_width, macroblock_height);
+  s.absolute_segment_adjustments = false;
+
+  s.segment_quantizer_adjustments.at(0) = -32;
+  s.segment_quantizer_adjustments.at(1) = 0;
+  s.segment_quantizer_adjustments.at(2) = 32;
+  s.segment_quantizer_adjustments.at(3) = 63;
+
+  for (unsigned i = 0; i < num_segments; i++) {
+    s.segment_filter_adjustments.at(i) = 0;
+  }
+
+  /* set a hardcoded ROI */
+  unsigned half_width = (macroblock_width + 1) / 2;
+  unsigned half_height = (macroblock_height + 1) / 2;
+
+  s.map.forall_ij(
+    [&half_width, &half_height](uint8_t & v, const unsigned column, const unsigned row) {
+      if (half_width > 0 and half_height > 0) {
+        v = column / half_width + 2 * (row / half_height);
+      } else {
+        v = 1;
+      }
+    }
+  );
+
+  return s;
+}
+
 vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster)
 {
   if (encode_quality_ != CV_QUALITY) {
@@ -583,6 +619,8 @@ vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster)
   if (width() != raster.display_width() or height() != raster.display_height()) {
     throw runtime_error("scaling is not supported");
   }
+
+  Segmentation s = detect_roi(raster);
 
   QuantIndices quant_indices;
   quant_indices.y_ac_qi = DEFAULT_QUANTIZER;

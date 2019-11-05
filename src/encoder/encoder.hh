@@ -344,6 +344,8 @@ private:
 
   void update_rd_multipliers( const Quantizer & quantizer );
 
+  Segmentation detect_roi(const VP8Raster & raster);
+
 public:
   Encoder( const uint16_t s_width, const uint16_t s_height,
            const bool two_pass,
