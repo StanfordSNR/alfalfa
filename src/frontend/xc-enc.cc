@@ -58,7 +58,7 @@ void usage_error( const string & program_name )
        << " -o <arg>, --output=<arg>              Output file name (default: output.ivf)"    << endl
        << " -s <arg>, --ssim=<arg>                SSIM for the output"                       << endl
        << " -i <arg>, --input-format=<arg>        Input file format"                         << endl
-       << "                                         ivf (default), y4m"                      << endl
+       << "                                         y4m (default), ivf"                      << endl
        << " -O <arg>, --output-state=<arg>        Output file name for final"                << endl
        << "                                         encoder state (default: none)"           << endl
        << " -I <arg>, --input-state=<arg>         Input file name for initial"               << endl
@@ -107,7 +107,7 @@ int main( int argc, char *argv[] )
     }
 
     string output_file = "output.ivf";
-    string input_format = "ivf";
+    string input_format = "y4m";
     string input_state = "";
     string output_state = "";
     string pred_file = "";
