@@ -64,9 +64,10 @@ void usage_error( const string & program_name )
        << " -I <arg>, --input-state=<arg>         Input file name for initial"               << endl
        << "                                         encoder state (default: none)"           << endl
        << " -y, --y-ac-qi=<arg>                   Quantization index for Y"                  << endl
-       << " -q, --quality=(best|rt)               Quality setting"                           << endl
+       << " -q, --quality=(best|rt|cv)            Quality setting"                           << endl
        << "                                         best: best quality, slowest (default)"   << endl
        << "                                         rt:   real-time"                         << endl
+       << "                                         cv:   for computer vision tasks"         << endl
        << " -F <arg>, --frame-sizes=<arg>         Target frame sizes file"                   << endl
        << "                                         Each line specifies the target size"     << endl
        << "                                         in bytes for the corresponding frame."   << endl
@@ -209,6 +210,9 @@ int main( int argc, char *argv[] )
       case 'q':
         if ( strcmp( optarg, "rt" ) == 0 ) {
           quality = REALTIME_QUALITY;
+        } else if (strcmp(optarg, "cv") == 0) {
+          quality = CV_QUALITY;
+          encoder_mode = CV_MODE;
         }
 
         break;
@@ -372,6 +376,10 @@ int main( int argc, char *argv[] )
           cerr << " [target_size=" << target_size << "] ";
           break;
         }
+
+        case CV_MODE:
+          output.append_frame(encoder.encode_for_cv(raster.get()));
+          break;
 
         default:
           throw Unsupported( "unsupported encoder mode." );

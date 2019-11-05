@@ -56,7 +56,8 @@ enum EncoderPass
 enum EncoderQuality
 {
   BEST_QUALITY,
-  REALTIME_QUALITY
+  REALTIME_QUALITY,
+  CV_QUALITY /* encode for computer vision tasks */
 };
 
 enum EncoderMode
@@ -64,7 +65,8 @@ enum EncoderMode
   MINIMUM_SSIM,
   CONSTANT_QUANTIZER,
   TARGET_FRAME_SIZE,
-  REENCODE
+  REENCODE,
+  CV_MODE /* mode for CV_QUALITY */
 };
 
 class SafeReferences
@@ -361,6 +363,8 @@ public:
 
   std::vector<uint8_t> encode_with_quantizer( const VP8Raster & raster,
                                               const uint8_t y_ac_qi );
+
+  std::vector<uint8_t> encode_for_cv(const VP8Raster & raster);
 
   /* Tries to encode the given raster with the best possible quality, without
    * exceeding the target size. */

@@ -574,6 +574,27 @@ vector<uint8_t> Encoder::encode_with_quantizer( const VP8Raster & raster, const 
   }
 }
 
+vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster)
+{
+  if (encode_quality_ != CV_QUALITY) {
+    throw runtime_error("encode quality must be CV_QUALITY");
+  }
+
+  if (width() != raster.display_width() or height() != raster.display_height()) {
+    throw runtime_error("scaling is not supported");
+  }
+
+  QuantIndices quant_indices;
+  quant_indices.y_ac_qi = DEFAULT_QUANTIZER;
+
+  if (not has_state_) {
+    has_state_ = true;
+    return write_frame(encode_raster<KeyFrame>(raster, quant_indices).first);
+  } else {
+    return write_frame(encode_raster<InterFrame>(raster, quant_indices).first);
+  }
+}
+
 vector<uint8_t> Encoder::encode_with_minimum_ssim( const VP8Raster & raster, const double minimum_ssim )
 {
   if ( width() != raster.display_width() or height() != raster.display_height() ) {
