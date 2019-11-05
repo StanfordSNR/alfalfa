@@ -109,6 +109,9 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
     pred.prediction_mode = ( mbmode )prediction_mode;
 
     if ( prediction_mode == B_PRED ) {
+      /* FIXME: ignore B_PRED mode for now */
+      continue;
+
       pred.cost = 0;
       pred.rate = costs_.mbmode_costs.at( interframe ? 1 : 0 ).at( B_PRED );
       pred.distortion = 0;

@@ -620,17 +620,22 @@ vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster)
     throw runtime_error("scaling is not supported");
   }
 
-  Segmentation s = detect_roi(raster);
+  Segmentation segmentation = detect_roi(raster);
 
   QuantIndices quant_indices;
   quant_indices.y_ac_qi = DEFAULT_QUANTIZER;
 
+  /* FIXME: test encoding key frames only for now */
+  return write_frame(encode_raster<KeyFrame>(raster, quant_indices).first);
+
+  /*
   if (not has_state_) {
     has_state_ = true;
     return write_frame(encode_raster<KeyFrame>(raster, quant_indices).first);
   } else {
     return write_frame(encode_raster<InterFrame>(raster, quant_indices).first);
   }
+  */
 }
 
 vector<uint8_t> Encoder::encode_with_minimum_ssim( const VP8Raster & raster, const double minimum_ssim )
