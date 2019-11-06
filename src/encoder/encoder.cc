@@ -620,13 +620,14 @@ vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster)
     throw runtime_error("scaling is not supported");
   }
 
-  Segmentation segmentation = detect_roi(raster);
-
   QuantIndices quant_indices;
   quant_indices.y_ac_qi = DEFAULT_QUANTIZER;
 
+  Segmentation segmentation = detect_roi(raster);
+
   /* FIXME: test encoding key frames only for now */
-  return write_frame(encode_raster<KeyFrame>(raster, quant_indices).first);
+  return write_frame(encode_raster<KeyFrame>(raster, quant_indices,
+                                             false, false, move(segmentation)).first);
 
   /*
   if (not has_state_) {

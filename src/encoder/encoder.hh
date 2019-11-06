@@ -336,7 +336,8 @@ private:
   std::pair<FrameType &, double> encode_raster( const VP8Raster & raster,
                                                 const QuantIndices & quant_indices,
                                                 const bool update_state = false,
-                                                const bool compute_ssim = false );
+                                                const bool compute_ssim = false,
+                                                const Optional<Segmentation> & segmentation = {});
 
   template<class FrameType>
   FrameType & encode_with_quantizer_search( const VP8Raster & raster,

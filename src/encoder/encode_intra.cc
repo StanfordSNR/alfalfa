@@ -392,20 +392,28 @@ template<>
 pair<KeyFrame &, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & raster,
                                                            const QuantIndices & quant_indices,
                                                            const bool update_state,
-                                                           const bool compute_ssim )
+                                                           const bool compute_ssim,
+                                                           const Optional<Segmentation> & segmentation )
 {
   DecoderState decoder_state_copy = decoder_state_;
   decoder_state_ = DecoderState( width(), height() );
 
   KeyFrame & frame = key_frame_;
+  KeyFrameHeader & frame_header = frame.mutable_header();
 
-  frame.mutable_header().quant_indices = quant_indices;
-  frame.mutable_header().refresh_entropy_probs = true;
+  frame_header.quant_indices = quant_indices;
+  frame_header.refresh_entropy_probs = true;
 
-  Quantizer quantizer( frame.header().quant_indices );
+  if (segmentation.initialized()) {
+    frame_header.update_segmentation.initialize();
+  }
+
+  const Quantizer frame_quantizer(quant_indices);
+  const auto segment_quantizers = frame.calculate_segment_quantizers(segmentation);
+
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
 
-  update_rd_multipliers( quantizer );
+  update_rd_multipliers( frame_quantizer );
 
   TokenBranchCounts token_branch_counts;
 
@@ -424,6 +432,13 @@ pair<KeyFrame &, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & ras
         auto reconstructed_mb = reconstructed_raster_handle.get().macroblock( mb_column, mb_row );
         auto temp_mb = temp_raster().macroblock( mb_column, mb_row );
         auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
+
+        // TODO set segment_id of the macroblock and serialize
+        uint8_t segment_id = segmentation.initialized() ?
+          segmentation.get().map.at(mb_column, mb_row) : 0;
+
+        const auto & quantizer = segmentation.initialized() ?
+          segment_quantizers.at(segment_id) : frame_quantizer;
 
         // Process Y and Y2
         luma_mb_intra_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,

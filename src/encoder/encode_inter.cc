@@ -578,7 +578,8 @@ template<>
 pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster & raster,
                                                                const QuantIndices & quant_indices,
                                                                const bool update_state,
-                                                               const bool compute_ssim )
+                                                               const bool compute_ssim,
+                                                               const Optional<Segmentation> & )
 {
   DecoderState decoder_state_copy = decoder_state_;
 
