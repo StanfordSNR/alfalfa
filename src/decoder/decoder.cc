@@ -479,6 +479,13 @@ Segmentation::Segmentation( const Segmentation & other )
   map.copy_from( other.map );
 }
 
+Segmentation::Segmentation(Segmentation && other)
+  : absolute_segment_adjustments(move(other.absolute_segment_adjustments)),
+    segment_quantizer_adjustments(move(other.segment_quantizer_adjustments)),
+    segment_filter_adjustments(move(other.segment_filter_adjustments)),
+    map(move(other.map))
+{}
+
 size_t DecoderHash::hash( void ) const
 {
   size_t hash_val = 0;

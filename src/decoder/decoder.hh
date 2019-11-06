@@ -182,6 +182,7 @@ struct Segmentation
   bool operator==( const Segmentation & other ) const;
 
   Segmentation( const Segmentation & other );
+  Segmentation(Segmentation && other);
 
   size_t serialize(EncoderStateSerializer &odata) const;
   static Segmentation deserialize(EncoderStateDeserializer &idata);
