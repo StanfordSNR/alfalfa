@@ -582,27 +582,24 @@ Segmentation Encoder::detect_roi(const VP8Raster & raster)
 
   /* set a hardcoded segment feature data */
   Segmentation s(macroblock_width, macroblock_height);
-  s.absolute_segment_adjustments = true;
-
-  s.segment_quantizer_adjustments.at(0) = 0;
-  s.segment_quantizer_adjustments.at(1) = 127;
-  s.segment_quantizer_adjustments.at(2) = 0;
-  s.segment_quantizer_adjustments.at(3) = 127;
-
-  for (unsigned i = 0; i < num_segments; i++) {
-    s.segment_filter_adjustments.at(i) = 0;
-  }
+  s.absolute_segment_adjustments = false;
+  s.segment_quantizer_adjustments = {-64, -64, 63, 63};
+  s.segment_filter_adjustments = {0, 0, 0, 0};
 
   /* set a hardcoded segmentation map */
   unsigned half_width = (macroblock_width + 1) / 2;
   unsigned half_height = (macroblock_height + 1) / 2;
 
   s.map.forall_ij(
-    [&half_width, &half_height](uint8_t & v, const unsigned column, const unsigned row) {
+    [&](uint8_t & v, const unsigned column, const unsigned row) {
       if (half_width > 0 and half_height > 0) {
-        v = column / half_width + 2 * (row / half_height);
+        if (frame_id_ % 2 == 0) {
+          v = 2 * (column / half_width) + row / half_height;
+        } else {
+          v = 2 * (1 - column / half_width) + row / half_height;
+        }
       } else {
-        v = 1;
+        v = 0;
       }
     }
   );
@@ -620,6 +617,8 @@ vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster)
     throw runtime_error("scaling is not supported");
   }
 
+  frame_id_++;
+
   QuantIndices quant_indices;
   quant_indices.y_ac_qi = DEFAULT_QUANTIZER;
 
@@ -632,9 +631,11 @@ vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster)
   /*
   if (not has_state_) {
     has_state_ = true;
-    return write_frame(encode_raster<KeyFrame>(raster, quant_indices).first);
+    return write_frame(encode_raster<KeyFrame>(raster, quant_indices,
+                                               false, false, move(segmentation)).first);
   } else {
-    return write_frame(encode_raster<InterFrame>(raster, quant_indices).first);
+    return write_frame(encode_raster<InterFrame>(raster, quant_indices,
+                                                 false, false, move(segmentation)).first);
   }
   */
 }

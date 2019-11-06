@@ -128,6 +128,7 @@ private:
   SafeReferences safe_references_;
 
   bool has_state_;
+  unsigned int frame_id_ {0};
 
   Costs costs_;
 
