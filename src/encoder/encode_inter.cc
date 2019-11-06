@@ -579,20 +579,34 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
                                                                const QuantIndices & quant_indices,
                                                                const bool update_state,
                                                                const bool compute_ssim,
-                                                               const Optional<Segmentation> & )
+                                                               const Optional<Segmentation> & segmentation )
 {
   DecoderState decoder_state_copy = decoder_state_;
 
   InterFrame & frame = inter_frame_;
+  InterFrameHeader & frame_header = frame.mutable_header();
 
-  frame.mutable_header().quant_indices = quant_indices;
-  frame.mutable_header().refresh_entropy_probs = true;
-  frame.mutable_header().refresh_last = true;
+  frame_header.quant_indices = quant_indices;
+  frame_header.refresh_entropy_probs = true;
+  frame_header.refresh_last = true;
 
-  Quantizer quantizer( frame.header().quant_indices );
+  if (segmentation.initialized()) {
+    frame_header.update_segmentation.initialize();
+    UpdateSegmentation & update_seg = frame_header.update_segmentation.get();
+
+    /* update segmentation map */
+    update_seg.update_mb_segmentation_map = true;
+
+    /* TODO update segment probabilities */
+    update_seg.mb_segmentation_map.initialize();
+  }
+
+  const Quantizer frame_quantizer(quant_indices);
+  const auto segment_quantizers = frame.calculate_segment_quantizers(segmentation);
+
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
 
-  update_rd_multipliers( quantizer );
+  update_rd_multipliers( frame_quantizer );
 
   costs_.fill_token_costs( ProbabilityTables() );
 
@@ -608,6 +622,14 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
       auto reconstructed_mb = reconstructed_raster_handle.get().macroblock( mb_column, mb_row );
       auto temp_mb = temp_raster().macroblock( mb_column, mb_row );
       auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
+
+      uint8_t segment_id = segmentation.initialized() ?
+        segmentation.get().map.at(mb_column, mb_row) : 0;
+      frame_mb.mutable_segment_id_update().initialize(segment_id);
+
+      /* select quantizer based on segment id */
+      const auto & quantizer = segmentation.initialized() ?
+        segment_quantizers.at(segment_id) : frame_quantizer;
 
       // Process Y and Y2
       luma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb, frame_mb,
