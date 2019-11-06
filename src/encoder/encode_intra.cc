@@ -109,9 +109,6 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
     pred.prediction_mode = ( mbmode )prediction_mode;
 
     if ( prediction_mode == B_PRED ) {
-      /* FIXME: ignore B_PRED mode for now */
-      continue;
-
       pred.cost = 0;
       pred.rate = costs_.mbmode_costs.at( interframe ? 1 : 0 ).at( B_PRED );
       pred.distortion = 0;
@@ -405,7 +402,25 @@ pair<KeyFrame &, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & ras
   frame_header.refresh_entropy_probs = true;
 
   if (segmentation.initialized()) {
+    const Segmentation & seg = segmentation.get();
+
     frame_header.update_segmentation.initialize();
+    UpdateSegmentation & update_seg = frame_header.update_segmentation.get();
+
+    /* update segmentation map */
+    update_seg.update_mb_segmentation_map = true;
+
+    /* update segment feature data */
+    update_seg.segment_feature_data.initialize();
+    SegmentFeatureData & seg_feature = update_seg.segment_feature_data.get();
+    seg_feature.segment_feature_mode = seg.absolute_segment_adjustments;
+    /* only touch quantizer parameters and leave loop filter values unchanged */
+    for (unsigned i = 0; i < num_segments; i++) {
+      seg_feature.quantizer_update.at(i) = Signed<7>(seg.segment_quantizer_adjustments.at(i));
+    }
+
+    /* TODO update segment probabilities */
+    update_seg.mb_segmentation_map.initialize();
   }
 
   const Quantizer frame_quantizer(quant_indices);
@@ -433,10 +448,11 @@ pair<KeyFrame &, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & ras
         auto temp_mb = temp_raster().macroblock( mb_column, mb_row );
         auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
-        // TODO set segment_id of the macroblock and serialize
         uint8_t segment_id = segmentation.initialized() ?
           segmentation.get().map.at(mb_column, mb_row) : 0;
+        frame_mb.mutable_segment_id_update().initialize(segment_id);
 
+        /* select quantizer based on segment id */
         const auto & quantizer = segmentation.initialized() ?
           segment_quantizers.at(segment_id) : frame_quantizer;
 

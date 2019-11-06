@@ -580,20 +580,20 @@ Segmentation Encoder::detect_roi(const VP8Raster & raster)
   unsigned macroblock_width = VP8Raster::macroblock_dimension(raster.display_width());
   unsigned macroblock_height = VP8Raster::macroblock_dimension(raster.display_height());
 
-  /* set a hardcoded segmentation map */
+  /* set a hardcoded segment feature data */
   Segmentation s(macroblock_width, macroblock_height);
-  s.absolute_segment_adjustments = false;
+  s.absolute_segment_adjustments = true;
 
-  s.segment_quantizer_adjustments.at(0) = -32;
-  s.segment_quantizer_adjustments.at(1) = 0;
-  s.segment_quantizer_adjustments.at(2) = 32;
-  s.segment_quantizer_adjustments.at(3) = 63;
+  s.segment_quantizer_adjustments.at(0) = 0;
+  s.segment_quantizer_adjustments.at(1) = 127;
+  s.segment_quantizer_adjustments.at(2) = 0;
+  s.segment_quantizer_adjustments.at(3) = 127;
 
   for (unsigned i = 0; i < num_segments; i++) {
     s.segment_filter_adjustments.at(i) = 0;
   }
 
-  /* set a hardcoded ROI */
+  /* set a hardcoded segmentation map */
   unsigned half_width = (macroblock_width + 1) / 2;
   unsigned half_height = (macroblock_height + 1) / 2;
 
@@ -625,7 +625,7 @@ vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster)
 
   Segmentation segmentation = detect_roi(raster);
 
-  /* FIXME: test encoding key frames only for now */
+  /* TODO: test encoding key frames only for now */
   return write_frame(encode_raster<KeyFrame>(raster, quant_indices,
                                              false, false, move(segmentation)).first);
 
