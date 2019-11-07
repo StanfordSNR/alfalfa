@@ -46,6 +46,9 @@ public:
   Optional() : initialized_( false ), missing_() {}
 
   /* constructor for initialized optional */
+  Optional( const T & other ) : initialized_( true ), object_( other ) {}
+
+  /* constructor for initialized optional */
   Optional( T && other ) : initialized_( true ), object_( std::move( other ) ) {}
 
   /* conditional constructor */
@@ -133,10 +136,18 @@ public:
 
   /* getters */
   bool initialized( void ) const { return initialized_; }
+  operator bool() const { return initialized_; }
+
   const T & get( void ) const { assert( initialized() ); return object_; }
   const T & get_or( const T & default_value ) const { return initialized() ? object_ : default_value; }
 
   T & get( void ) { assert( initialized() ); return object_; }
+
+  const T & operator*() const { assert( initialized() ); return object_; }
+  T & operator*() { assert( initialized() ); return object_; }
+
+  const T * operator->() const { assert( initialized() ); return &object_; }
+  T * operator->() { assert( initialized() ); return &object_; }
 
   /* destructor */
   ~Optional() { if ( initialized() ) { object_.~T(); } }
