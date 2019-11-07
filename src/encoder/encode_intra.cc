@@ -446,9 +446,11 @@ pair<KeyFrame &, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & ras
         auto temp_mb = temp_raster().macroblock( mb_column, mb_row );
         auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
-        uint8_t segment_id = segmentation.initialized() ?
-          segmentation.get().map.at(mb_column, mb_row) : 0;
-        frame_mb.mutable_segment_id_update().initialize(segment_id);
+        uint8_t segment_id = 0;
+        if (segmentation.initialized()) {
+          segment_id = segmentation.get().map.at(mb_column, mb_row);
+          frame_mb.mutable_segment_id_update().initialize(segment_id);
+        }
 
         /* select quantizer based on segment id */
         const auto & quantizer = segmentation.initialized() ?
