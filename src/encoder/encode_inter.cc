@@ -606,8 +606,6 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
 
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
 
-  update_rd_multipliers( frame_quantizer );
-
   costs_.fill_token_costs( ProbabilityTables() );
 
   TokenBranchCounts token_branch_counts;
@@ -630,6 +628,8 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
       /* select quantizer based on segment id */
       const auto & quantizer = segmentation.initialized() ?
         segment_quantizers.at(segment_id) : frame_quantizer;
+
+      update_rd_multipliers(quantizer);
 
       // Process Y and Y2
       luma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb, frame_mb,
