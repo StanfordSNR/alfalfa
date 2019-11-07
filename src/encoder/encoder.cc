@@ -743,3 +743,48 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::zero_out()
 
 template void InterFrameMacroblock::zero_out();
 template void KeyFrameMacroblock::zero_out();
+
+Quantizers::Quantizers(const QuantIndices & quant_indices,
+                       const Optional<Segmentation> & segmentation)
+  : frame_quant_indices(quant_indices), frame_quantizer(quant_indices),
+    segment_quant_indices(), segment_quantizers()
+{
+  if (segmentation.initialized()) {
+    segment_quant_indices.initialize();
+    segment_quantizers.initialize();
+
+    for (uint8_t i = 0; i < num_segments; i++) {
+      auto & indices_i = segment_quant_indices.get().at(i);
+      indices_i.y_ac_qi = segmentation.get().segment_quantizer_adjustments.at(i)
+        + (segmentation.get().absolute_segment_adjustments
+           ? static_cast<Unsigned<7>>(0)
+           : quant_indices.y_ac_qi);
+
+      segment_quantizers.get().at(i) = Quantizer(indices_i);
+    }
+  }
+}
+
+const Quantizer & Quantizers::get_quantizer(const uint8_t segment_id) const
+{
+  if (segment_id < num_segments) {
+    if (not segment_quantizers.initialized()) {
+      throw runtime_error("segment_quantizers is not initialized yet");
+    }
+    return segment_quantizers.get().at(segment_id);
+  }
+
+  return frame_quantizer;
+}
+
+const QuantIndices & Quantizers::get_quant_indices(const uint8_t segment_id) const
+{
+  if (segment_id < num_segments) {
+    if (not segment_quant_indices.initialized()) {
+      throw runtime_error("segment_quant_indices is not initialized yet");
+    }
+    return segment_quant_indices.get().at(segment_id);
+  }
+
+  return frame_quant_indices;
+}

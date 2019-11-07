@@ -37,12 +37,6 @@ struct References;
 struct Segmentation;
 struct FilterAdjustments;
 
-struct Quantizers
-{
-  Quantizer quantizer;
-  SafeArray< Quantizer, num_segments > segment_quantizers;
-};
-
 template <class FrameHeaderType, class MacroblockType>
 class Frame
 {

@@ -69,6 +69,20 @@ enum EncoderMode
   CV_MODE /* mode for CV_QUALITY */
 };
 
+struct Quantizers
+{
+  QuantIndices frame_quant_indices;
+  Quantizer frame_quantizer;
+  Optional<SafeArray<QuantIndices, num_segments>> segment_quant_indices;
+  Optional<SafeArray<Quantizer, num_segments>> segment_quantizers;
+
+  Quantizers(const QuantIndices & quant_indices,
+             const Optional<Segmentation> & segmentation = {});
+
+  const Quantizer & get_quantizer(const uint8_t segment_id = num_segments) const;
+  const QuantIndices & get_quant_indices(const uint8_t segment_id = num_segments) const;
+};
+
 class SafeReferences
 {
 public:
