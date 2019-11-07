@@ -611,10 +611,10 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
     frame_header.update_segmentation.initialize();
     UpdateSegmentation & update_seg = frame_header.update_segmentation.get();
 
-    /* update segmentation map */
+    /* always update segmentation map but never update segmentation feature data */
     update_seg.update_mb_segmentation_map = true;
 
-    /* TODO update segment probabilities */
+    /* TODO update segment probabilities based on frequency of segments */
     update_seg.mb_segmentation_map.initialize();
   }
 

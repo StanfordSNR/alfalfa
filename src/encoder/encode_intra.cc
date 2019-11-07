@@ -412,10 +412,10 @@ pair<KeyFrame &, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & ras
     frame_header.update_segmentation.initialize();
     UpdateSegmentation & update_seg = frame_header.update_segmentation.get();
 
-    /* update segmentation map */
+    /* set initial segmentation map */
     update_seg.update_mb_segmentation_map = true;
 
-    /* update segment feature data */
+    /* set initial segment feature data */
     update_seg.segment_feature_data.initialize();
     SegmentFeatureData & seg_feature = update_seg.segment_feature_data.get();
     seg_feature.segment_feature_mode = seg.absolute_segment_adjustments;
@@ -424,7 +424,7 @@ pair<KeyFrame &, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & ras
       seg_feature.quantizer_update.at(i) = Signed<7>(seg.segment_quantizer_adjustments.at(i));
     }
 
-    /* TODO update segment probabilities */
+    /* TODO set segment probabilities based on frequency of segments */
     update_seg.mb_segmentation_map.initialize();
   }
 
@@ -461,7 +461,7 @@ pair<KeyFrame &, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & ras
         const auto & quantizer = segmentation.initialized() ?
           segment_quantizers.at(segment_id) : frame_quantizer;
 
-        update_rd_multipliers( quantizer );
+        update_rd_multipliers(quantizer);
 
         // Process Y and Y2
         luma_mb_intra_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,

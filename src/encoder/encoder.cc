@@ -624,11 +624,6 @@ vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster)
 
   Segmentation segmentation = detect_roi(raster);
 
-  /* TODO: test encoding key frames only for now */
-  return write_frame(encode_raster<KeyFrame>(raster, quant_indices,
-                                             false, false, move(segmentation)).first);
-
-  /*
   if (not has_state_) {
     has_state_ = true;
     return write_frame(encode_raster<KeyFrame>(raster, quant_indices,
@@ -637,7 +632,6 @@ vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster)
     return write_frame(encode_raster<InterFrame>(raster, quant_indices,
                                                  false, false, move(segmentation)).first);
   }
-  */
 }
 
 vector<uint8_t> Encoder::encode_with_minimum_ssim( const VP8Raster & raster, const double minimum_ssim )
