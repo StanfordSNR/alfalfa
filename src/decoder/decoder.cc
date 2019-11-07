@@ -227,9 +227,9 @@ DecoderState::DecoderState(const unsigned s_width, const unsigned s_height,
   , filter_adjustments(move(f))
 {
   /* check segmentation dimension if it exists */
-  if (segmentation.initialized()) {
-    if (segmentation.get().map.width() != VP8Raster::macroblock_dimension(width) or
-        segmentation.get().map.height() != VP8Raster::macroblock_dimension(height)) {
+  if (segmentation) {
+    if (segmentation->map.width() != VP8Raster::macroblock_dimension(width) or
+        segmentation->map.height() != VP8Raster::macroblock_dimension(height)) {
       throw runtime_error("DecoderState: wrong dimension of segmentation");
     }
   }

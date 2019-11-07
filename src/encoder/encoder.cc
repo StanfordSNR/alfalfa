@@ -749,26 +749,26 @@ Quantizers::Quantizers(const QuantIndices & quant_indices,
   : frame_quant_indices(quant_indices), frame_quantizer(quant_indices),
     segment_quant_indices(), segment_quantizers()
 {
-  if (segmentation.initialized()) {
+  if (segmentation) {
     segment_quant_indices.initialize();
     segment_quantizers.initialize();
 
     for (uint8_t i = 0; i < num_segments; i++) {
-      auto & indices_i = segment_quant_indices.get().at(i);
-      indices_i.y_ac_qi = segmentation.get().segment_quantizer_adjustments.at(i)
-        + (segmentation.get().absolute_segment_adjustments
+      auto & indices_i = segment_quant_indices->at(i);
+      indices_i.y_ac_qi = segmentation->segment_quantizer_adjustments.at(i)
+        + (segmentation->absolute_segment_adjustments
            ? static_cast<Unsigned<7>>(0)
            : quant_indices.y_ac_qi);
 
-      segment_quantizers.get().at(i) = Quantizer(indices_i);
+      segment_quantizers->at(i) = Quantizer(indices_i);
     }
   }
 }
 
 const Quantizer & Quantizers::get_quantizer(const Optional<uint8_t> & segment_id) const
 {
-  if (segment_id.initialized() and segment_quantizers.initialized()) {
-    return segment_quantizers.get().at(segment_id.get());
+  if (segment_id and segment_quantizers) {
+    return segment_quantizers->at(*segment_id);
   }
 
   return frame_quantizer;
@@ -776,8 +776,8 @@ const Quantizer & Quantizers::get_quantizer(const Optional<uint8_t> & segment_id
 
 const QuantIndices & Quantizers::get_quant_indices(const Optional<uint8_t> & segment_id) const
 {
-  if (segment_id.initialized() and segment_quant_indices.initialized()) {
-    return segment_quant_indices.get().at(segment_id.get());
+  if (segment_id and segment_quant_indices) {
+    return segment_quant_indices->at(*segment_id);
   }
 
   return frame_quant_indices;

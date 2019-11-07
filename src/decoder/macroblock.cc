@@ -71,22 +71,23 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
-void Macroblock<FrameHeaderType, MacroblockHeaderType>::update_segmentation( SegmentationMap & mutable_segmentation_map ) {
+void Macroblock<FrameHeaderType, MacroblockHeaderType>::update_segmentation(SegmentationMap & mutable_segmentation_map)
+{
   /* update persistent segmentation map */
-  if ( segment_id_update_.initialized() ) {
-    mutable_segmentation_map.at( context_.column, context_.row ) = segment_id_update_.get();
+  if (segment_id_update_) {
+    mutable_segmentation_map.at(context_.column, context_.row) = *segment_id_update_;
   }
 
   /* cache segment id of this macroblock */
-  segment_id_ = mutable_segmentation_map.at( context_.column, context_.row );
+  segment_id_ = mutable_segmentation_map.at(context_.column, context_.row);
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::update_segmentation_map(SegmentationMap & mutable_segmentation_map) const
 {
   /* update segmentation map */
-  if (segment_id_update_.initialized()) {
-    mutable_segmentation_map.at(context_.column, context_.row) = segment_id_update_.get();
+  if (segment_id_update_) {
+    mutable_segmentation_map.at(context_.column, context_.row) = *segment_id_update_;
   }
 }
 

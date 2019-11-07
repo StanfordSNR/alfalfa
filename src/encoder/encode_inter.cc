@@ -169,9 +169,9 @@ void Encoder::update_decoder_state( const InterFrame & frame )
   }
 
   /* update segmentation (except the segmentation map) */
-  if (frame.header().update_segmentation.initialized()) {
-    if (decoder_state_.segmentation.initialized()) {
-      decoder_state_.segmentation.get().update(frame.header());
+  if (frame.header().update_segmentation) {
+    if (decoder_state_.segmentation) {
+      decoder_state_.segmentation->update(frame.header());
     } else {
       decoder_state_.segmentation.initialize(frame.header(),
         frame.macroblocks().width(), frame.macroblocks().height());
@@ -181,8 +181,8 @@ void Encoder::update_decoder_state( const InterFrame & frame )
   }
 
   /* update segmentation map in the decoder state */
-  if (decoder_state_.segmentation.initialized()) {
-    frame.update_segmentation_map(decoder_state_.segmentation.get().map);
+  if (decoder_state_.segmentation) {
+    frame.update_segmentation_map(decoder_state_.segmentation->map);
   }
 }
 
@@ -607,9 +607,9 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
   frame_header.refresh_entropy_probs = true;
   frame_header.refresh_last = true;
 
-  if (segmentation.initialized()) {
+  if (segmentation) {
     frame_header.update_segmentation.initialize();
-    UpdateSegmentation & update_seg = frame_header.update_segmentation.get();
+    UpdateSegmentation & update_seg = *frame_header.update_segmentation;
 
     /* always update segmentation map but never update segmentation feature data */
     update_seg.update_mb_segmentation_map = true;
@@ -638,10 +638,10 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
       auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
       Optional<uint8_t> segment_id; /* use frame-level quantization by default */
-      if (segmentation.initialized()) {
-        segment_id.initialize(segmentation.get().map.at(mb_column, mb_row));
-        frame_mb.mutable_segment_id_update().initialize(segment_id.get());
-        frame_mb.mutable_segment_id() = segment_id.get(); /* update cached segment id */
+      if (segmentation) {
+        segment_id = segmentation->map.at(mb_column, mb_row);
+        frame_mb.mutable_segment_id_update().initialize(*segment_id);
+        frame_mb.mutable_segment_id() = *segment_id; /* update cached segment id */
       }
 
       /* select quantizer based on segment id */
