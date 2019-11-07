@@ -642,6 +642,7 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
       if (segmentation.initialized()) {
         segment_id = segmentation.get().map.at(mb_column, mb_row);
         frame_mb.mutable_segment_id_update().initialize(segment_id);
+        frame_mb.mutable_segment_id() = segment_id; /* update cached segment id */
       }
 
       /* select quantizer based on segment id */
