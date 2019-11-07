@@ -170,7 +170,7 @@ template <class HeaderType>
 Segmentation::Segmentation( const HeaderType & header,
                             const unsigned int width,
                             const unsigned int height )
-  : map( width, height, 3 )
+  : map( width, height )
 {
   update( header );
 }

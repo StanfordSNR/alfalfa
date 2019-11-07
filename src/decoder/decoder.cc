@@ -452,12 +452,12 @@ bool Segmentation::operator==( const Segmentation & other ) const
 }
 
 Segmentation::Segmentation(const unsigned width, const unsigned height)
-  : map(width, height, 3) {}
+  : map(width, height) {}
 
 Segmentation::Segmentation(EncoderStateDeserializer &idata,
                            const bool abs, const unsigned width, const unsigned height)
   : absolute_segment_adjustments(abs)
-  , map(width, height, 3) {
+  , map(width, height) {
 
   for (unsigned i = 0; i < num_segments; i++) {
     segment_quantizer_adjustments.at(i) = idata.get<int8_t>();
