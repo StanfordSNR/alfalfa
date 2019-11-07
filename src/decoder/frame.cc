@@ -119,6 +119,16 @@ void Frame<FrameHeaderType, MacroblockType>::update_segmentation( SegmentationMa
 }
 
 template <class FrameHeaderType, class MacroblockType>
+void Frame<FrameHeaderType, MacroblockType>::update_segmentation_map(SegmentationMap & mutable_segmentation_map) const
+{
+  macroblock_headers_.get().forall(
+    [&](const MacroblockType & mb) {
+      mb.update_segmentation_map(mutable_segmentation_map);
+    }
+  );
+}
+
+template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::parse_tokens( vector< Chunk > dct_partitions,
                                                            const ProbabilityTables & probability_tables )
 {

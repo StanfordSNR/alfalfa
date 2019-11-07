@@ -167,6 +167,23 @@ void Encoder::update_decoder_state( const InterFrame & frame )
   } else {
     decoder_state_.filter_adjustments.clear();
   }
+
+  /* update segmentation (except the segmentation map) */
+  if (frame.header().update_segmentation.initialized()) {
+    if (decoder_state_.segmentation.initialized()) {
+      decoder_state_.segmentation.get().update(frame.header());
+    } else {
+      decoder_state_.segmentation.initialize(frame.header(),
+        frame.macroblocks().width(), frame.macroblocks().height());
+    }
+  } else {
+    decoder_state_.segmentation.clear();
+  }
+
+  /* update segmentation map in the decoder state */
+  if (decoder_state_.segmentation.initialized()) {
+    frame.update_segmentation_map(decoder_state_.segmentation.get().map);
+  }
 }
 
 Encoder::MVSearchResult Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,

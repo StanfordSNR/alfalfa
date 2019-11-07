@@ -43,6 +43,11 @@ void Encoder::update_decoder_state( const KeyFrame & frame )
   if ( frame.header().refresh_entropy_probs ) {
     decoder_state_.probability_tables.coeff_prob_update( frame.header() );
   }
+
+  /* update segmentation map in the decoder state */
+  if (decoder_state_.segmentation.initialized()) {
+    frame.update_segmentation_map(decoder_state_.segmentation.get().map);
+  }
 }
 
 void Encoder::luma_sb_apply_intra_prediction( const VP8Raster::Block4 & original_sb,

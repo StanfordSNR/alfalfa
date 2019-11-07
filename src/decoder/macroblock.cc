@@ -77,8 +77,17 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::update_segmentation( Seg
     mutable_segmentation_map.at( context_.column, context_.row ) = segment_id_update_.get();
   }
 
-  /* cache segment id of this macroblock*/
+  /* cache segment id of this macroblock */
   segment_id_ = mutable_segmentation_map.at( context_.column, context_.row );
+}
+
+template <class FrameHeaderType, class MacroblockHeaderType>
+void Macroblock<FrameHeaderType, MacroblockHeaderType>::update_segmentation_map(SegmentationMap & mutable_segmentation_map) const
+{
+  /* update segmentation map */
+  if (segment_id_update_.initialized()) {
+    mutable_segmentation_map.at(context_.column, context_.row) = segment_id_update_.get();
+  }
 }
 
 template <>

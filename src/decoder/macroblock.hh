@@ -88,7 +88,11 @@ public:
               TwoD< UVBlock > & frame_V,
               const bool error_concealment );
 
+  /* update the segmentation map entry corresponding to this macroblock and cache segment id */
   void update_segmentation( SegmentationMap & mutable_segmentation_map );
+
+  /* update the segmentation map entry corresponding to this macroblock without caching segment id */
+  void update_segmentation_map(SegmentationMap & mutable_segmentation_map) const;
 
   void parse_tokens( BoolDecoder & data,
                      const ProbabilityTables & probability_tables );

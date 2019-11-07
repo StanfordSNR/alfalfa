@@ -50,6 +50,12 @@ void Segmentation::update( const HeaderType & header )
   }
 }
 
+template
+void Segmentation::update<KeyFrameHeader>(const KeyFrameHeader & header);
+
+template
+void Segmentation::update<InterFrameHeader>(const InterFrameHeader & header);
+
 template <class HeaderType>
 void FilterAdjustments::update( const HeaderType & header ) {
   assert( header.mode_lf_adjustments.initialized() );
@@ -174,5 +180,15 @@ Segmentation::Segmentation( const HeaderType & header,
 {
   update( header );
 }
+
+template
+Segmentation::Segmentation(const KeyFrameHeader & header,
+                           const unsigned int width,
+                           const unsigned int height);
+
+template
+Segmentation::Segmentation(const InterFrameHeader & header,
+                           const unsigned int width,
+                           const unsigned int height);
 
 #endif /* DECODER_STATE_HH */

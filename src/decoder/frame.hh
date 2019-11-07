@@ -88,7 +88,11 @@ class Frame
                                  const ProbabilityTables & probability_tables,
                                  const bool error_concealment );
 
+  /* update segmentation map and cache segment id in each macroblock */
   void update_segmentation( SegmentationMap & mutable_segmentation_map );
+
+  /* update segmentation map only without caching segment id in each macroblock */
+  void update_segmentation_map(SegmentationMap & mutable_segmentation_map) const;
 
   void parse_tokens( std::vector< Chunk > dct_partitions, const ProbabilityTables & probability_tables );
 
