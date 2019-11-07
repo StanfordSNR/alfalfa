@@ -225,7 +225,15 @@ DecoderState::DecoderState(const unsigned s_width, const unsigned s_height,
   , probability_tables(move(p))
   , segmentation(move(s))
   , filter_adjustments(move(f))
-{}
+{
+  /* check segmentation dimension if it exists */
+  if (segmentation.initialized()) {
+    if (segmentation.get().map.width() != VP8Raster::macroblock_dimension(width) or
+        segmentation.get().map.height() != VP8Raster::macroblock_dimension(height)) {
+      throw runtime_error("DecoderState: wrong dimension of segmentation");
+    }
+  }
+}
 
 DecoderState::DecoderState( const unsigned int s_width, const unsigned int s_height )
   : width( s_width ), height( s_height )
@@ -235,7 +243,9 @@ DecoderState::DecoderState( const KeyFrameHeader & header,
                             const unsigned int s_width,
                             const unsigned int s_height )
   : width( s_width ), height( s_height ),
-    segmentation( header.update_segmentation.initialized(), header, width, height ),
+    segmentation( header.update_segmentation.initialized(), header,
+                  VP8Raster::macroblock_dimension( width ),
+                  VP8Raster::macroblock_dimension( height ) ),
     filter_adjustments( header.mode_lf_adjustments.initialized(), header )
 {}
 

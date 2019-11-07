@@ -223,7 +223,8 @@ DecoderState random_decoder_state(default_random_engine &rng, uint16_t width, ui
   Optional<FilterAdjustments> f;
 
   if (rng()) {
-    s = move(random_segmentation(rng, width, height));
+    s = move(random_segmentation(rng, VP8Raster::macroblock_dimension(width),
+                                      VP8Raster::macroblock_dimension(height)));
   }
 
   if (rng()) {
