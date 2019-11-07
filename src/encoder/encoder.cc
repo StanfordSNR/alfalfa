@@ -765,25 +765,19 @@ Quantizers::Quantizers(const QuantIndices & quant_indices,
   }
 }
 
-const Quantizer & Quantizers::get_quantizer(const uint8_t segment_id) const
+const Quantizer & Quantizers::get_quantizer(const Optional<uint8_t> & segment_id) const
 {
-  if (segment_id < num_segments) {
-    if (not segment_quantizers.initialized()) {
-      throw runtime_error("segment_quantizers is not initialized yet");
-    }
-    return segment_quantizers.get().at(segment_id);
+  if (segment_id.initialized() and segment_quantizers.initialized()) {
+    return segment_quantizers.get().at(segment_id.get());
   }
 
   return frame_quantizer;
 }
 
-const QuantIndices & Quantizers::get_quant_indices(const uint8_t segment_id) const
+const QuantIndices & Quantizers::get_quant_indices(const Optional<uint8_t> & segment_id) const
 {
-  if (segment_id < num_segments) {
-    if (not segment_quant_indices.initialized()) {
-      throw runtime_error("segment_quant_indices is not initialized yet");
-    }
-    return segment_quant_indices.get().at(segment_id);
+  if (segment_id.initialized() and segment_quant_indices.initialized()) {
+    return segment_quant_indices.get().at(segment_id.get());
   }
 
   return frame_quant_indices;

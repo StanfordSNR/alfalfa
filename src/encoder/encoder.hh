@@ -79,8 +79,8 @@ struct Quantizers
   Quantizers(const QuantIndices & quant_indices,
              const Optional<Segmentation> & segmentation = {});
 
-  const Quantizer & get_quantizer(const uint8_t segment_id = num_segments) const;
-  const QuantIndices & get_quant_indices(const uint8_t segment_id = num_segments) const;
+  const Quantizer & get_quantizer(const Optional<uint8_t> & segment_id = {}) const;
+  const QuantIndices & get_quant_indices(const Optional<uint8_t> & segment_id = {}) const;
 };
 
 class SafeReferences

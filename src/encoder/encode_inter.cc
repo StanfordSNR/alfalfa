@@ -618,8 +618,7 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
     update_seg.mb_segmentation_map.initialize();
   }
 
-  const Quantizer frame_quantizer(quant_indices);
-  const auto segment_quantizers = frame.calculate_segment_quantizers(segmentation);
+  const Quantizers quantizers(quant_indices, segmentation);
 
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
 
@@ -638,23 +637,22 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
       auto temp_mb = temp_raster().macroblock( mb_column, mb_row );
       auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
-      uint8_t segment_id = 0;
+      Optional<uint8_t> segment_id; /* use frame-level quantization by default */
       if (segmentation.initialized()) {
-        segment_id = segmentation.get().map.at(mb_column, mb_row);
-        frame_mb.mutable_segment_id_update().initialize(segment_id);
-        frame_mb.mutable_segment_id() = segment_id; /* update cached segment id */
+        segment_id.initialize(segmentation.get().map.at(mb_column, mb_row));
+        frame_mb.mutable_segment_id_update().initialize(segment_id.get());
+        frame_mb.mutable_segment_id() = segment_id.get(); /* update cached segment id */
       }
 
       /* select quantizer based on segment id */
-      const auto & quantizer = segmentation.initialized() ?
-        segment_quantizers.at(segment_id) : frame_quantizer;
+      const auto & quantizer = quantizers.get_quantizer(segment_id);
+      const size_t mb_y_ac_qi = quantizers.get_quant_indices(segment_id).y_ac_qi;
 
       update_rd_multipliers(quantizer);
 
       // Process Y and Y2
       luma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb, frame_mb,
-                             quantizer, component_counts,
-                             frame.header().quant_indices.y_ac_qi, FIRST_PASS );
+                             quantizer, component_counts, mb_y_ac_qi, FIRST_PASS );
 
       if ( frame_mb.inter_coded() ) {
         chroma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,
