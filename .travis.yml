@@ -10,7 +10,7 @@ before_install:
   - docker build -t alfalfa-travis -f .travis.Dockerfile .
 
 script:
-  - docker run -ti alfalfa-travis:latest /home/user/alfalfa/.travis-check.sh
+  - docker run --privileged -ti alfalfa-travis:latest /home/user/alfalfa/.travis-check.sh
 
 notifications:
   email: false
