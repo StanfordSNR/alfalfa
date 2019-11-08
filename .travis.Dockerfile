@@ -5,7 +5,7 @@ RUN apt-get update -qq
 RUN apt-get install -y -q gcc-7 g++-7 yasm libxinerama-dev libxcursor-dev \
                           libglu1-mesa-dev libboost-all-dev libx264-dev \
                           libxrandr-dev libxi-dev libglew-dev vpx-tools \
-                          binutils libjpeg-turbo8-dev libglfw3-dev
+                          binutils libjpeg-turbo8-dev libglfw3-dev automake
 
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 99
 RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 99
