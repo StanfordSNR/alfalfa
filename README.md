@@ -1,4 +1,4 @@
-# Alfalfa [![Build Status](https://travis-ci.org/excamera/alfalfa.svg?branch=master)](https://travis-ci.org/excamera/alfalfa)
+# Alfalfa [![Build Status](https://travis-ci.org/StanfordSNR/alfalfa.svg?branch=master)](https://travis-ci.org/StanfordSNR/alfalfa)
 
 Alfalfa is a [VP8](https://en.wikipedia.org/wiki/VP8) encoder and
 decoder, implemented in explicit state-passing style and developed by
