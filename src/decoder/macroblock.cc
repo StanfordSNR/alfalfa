@@ -56,7 +56,7 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
                         frame_header.update_segmentation.get().update_mb_segmentation_map,
                         ( error_concealment and not data.valid() ) ? BoolDecoder::zero_decoder() : data,
                         mb_segment_tree_probs ),
-    segment_id_( 0 ),
+    segment_id_( num_segments ), /* set the cached segment id to an invalid value initially */
     mb_skip_coeff_( frame_header.prob_skip_false.initialized(),
                     ( error_concealment and not data.valid() ) ? BoolDecoder::zero_decoder() : data,
                     frame_header.prob_skip_false.get_or( 0 ) ),

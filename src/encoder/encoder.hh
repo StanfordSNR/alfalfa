@@ -347,6 +347,11 @@ private:
   template<class FrameType>
   void update_decoder_state( const FrameType & frame );
 
+  /* set update_segmentation in frame header based on the given 'segmentation' */
+  template<class FrameHeaderType>
+  void set_header_update_segmentation(FrameHeaderType & frame_header,
+                                      const Optional<Segmentation> & segmentation);
+
   template<class FrameType>
   std::pair<FrameType &, double> encode_raster( const VP8Raster & raster,
                                                 const QuantIndices & quant_indices,

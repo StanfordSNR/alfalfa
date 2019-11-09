@@ -688,6 +688,38 @@ vector<uint8_t> Encoder::encode_with_target_size( const VP8Raster & raster, cons
   return encode_with_quantizer( raster, best_y_qi );
 }
 
+template<class FrameHeaderType>
+void Encoder::set_header_update_segmentation(FrameHeaderType & frame_header,
+                                             const Optional<Segmentation> & segmentation)
+{
+  if (segmentation) {
+    UpdateSegmentation update_seg;
+
+    /* update segmentation map */
+    update_seg.update_mb_segmentation_map = true;
+
+    /* set segment feature data only on key frames */
+    if (frame_header.key_frame()) {
+      update_seg.segment_feature_data.initialize();
+      SegmentFeatureData & seg_feature = *update_seg.segment_feature_data;
+
+      seg_feature.segment_feature_mode = segmentation->absolute_segment_adjustments;
+      /* only touch quantizer parameters and leave loop filter values unchanged */
+      for (unsigned i = 0; i < num_segments; i++) {
+        seg_feature.quantizer_update.at(i) = Signed<7>(
+          segmentation->segment_quantizer_adjustments.at(i));
+      }
+    }
+
+    /* TODO set segment probabilities based on frequency of segments */
+    update_seg.mb_segmentation_map.initialize();
+
+    frame_header.update_segmentation = move(update_seg);
+  } else {
+    frame_header.update_segmentation.clear();
+  }
+}
+
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::calculate_has_nonzero()
 {

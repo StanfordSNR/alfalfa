@@ -120,6 +120,7 @@ public:
   bool inter_coded() const;
 
   Optional< Tree< uint8_t, num_segments, segment_id_tree > > & mutable_segment_id_update( void ) { return segment_id_update_; }
+
   uint8_t segment_id() const { return segment_id_; }
   uint8_t & mutable_segment_id() { return segment_id_; }
 

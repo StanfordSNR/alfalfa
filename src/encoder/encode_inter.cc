@@ -606,17 +606,7 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
   frame_header.quant_indices = quant_indices;
   frame_header.refresh_entropy_probs = true;
   frame_header.refresh_last = true;
-
-  if (segmentation) {
-    frame_header.update_segmentation.initialize();
-    UpdateSegmentation & update_seg = *frame_header.update_segmentation;
-
-    /* always update segmentation map but never update segmentation feature data */
-    update_seg.update_mb_segmentation_map = true;
-
-    /* TODO update segment probabilities based on frequency of segments */
-    update_seg.mb_segmentation_map.initialize();
-  }
+  set_header_update_segmentation(frame_header, segmentation);
 
   const Quantizers quantizers(quant_indices, segmentation);
 
@@ -640,8 +630,11 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
       Optional<uint8_t> segment_id; /* use frame-level quantization by default */
       if (segmentation) {
         segment_id.initialize(segmentation->map.at(mb_column, mb_row));
-        frame_mb.mutable_segment_id_update().initialize(*segment_id);
-        frame_mb.mutable_segment_id() = *segment_id; /* update cached segment id */
+        frame_mb.mutable_segment_id_update() = Tree<uint8_t, num_segments, segment_id_tree>(*segment_id);
+        frame_mb.mutable_segment_id() = *segment_id;
+      } else {
+        frame_mb.mutable_segment_id_update().clear();
+        frame_mb.mutable_segment_id() = num_segments;
       }
 
       /* select quantizer based on segment id */
