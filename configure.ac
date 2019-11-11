@@ -19,11 +19,16 @@ AS_IF([test x"$PERL" = x],
   [AC_MSG_ERROR([cannot find perl])])
 
 # Add picky CXXFLAGS
-CXX11_FLAGS="-std=c++14 -pthread"
+CXX11_FLAGS="-std=c++17 -pthread"
 PICKY_CXXFLAGS="-pedantic -Wall -Wextra -Weffc++ -Werror"
 AC_SUBST([CXX11_FLAGS])
 AC_SUBST([PICKY_CXXFLAGS])
 AC_LANG_PUSH(C++)
+
+AC_CHECK_HEADERS([string_view])
+AC_CHECK_HEADERS([experimental/string_view])
+AC_CHECK_HEADERS([filesystem])
+AC_CHECK_HEADERS([experimental/filesystem])
 
 AC_ARG_ENABLE([debug],
   [AS_HELP_STRING([--enable-debug@<:@=no/asserts/sanitize@:>@],

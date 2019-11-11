@@ -12,4 +12,4 @@ libalfalfautil_a_SOURCES = 2d.hh chunk.hh exception.hh file.cc \
 	optional.hh safe_array.hh raster.hh raster.cc ssim.hh ssim.cc \
 	ivf_writer.hh ivf_writer.cc mmap_region.hh mmap_region.cc \
 	finally.hh paranoid.hh paranoid.cc procinfo.hh procinfo.cc \
-	tokenize.hh tokenize.cc
+	tokenize.hh tokenize.cc filesystem.hh
