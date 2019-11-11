@@ -56,7 +56,7 @@ class Frame
 
   Optional<TwoD<MacroblockType>> macroblock_headers_ {};
 
-  ProbabilityArray< num_segments > calculate_mb_segment_tree_probs( void ) const;
+  ProbabilityArray< num_segments > read_mb_segment_tree_probs( void ) const;
   SafeArray< Quantizer, num_segments > calculate_segment_quantizers( const Optional< Segmentation > & segmentation ) const;
 
   std::vector< uint8_t > serialize_first_partition( const ProbabilityTables & probability_tables ) const;

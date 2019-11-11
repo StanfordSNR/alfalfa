@@ -584,7 +584,6 @@ Segmentation Encoder::detect_roi(const VP8Raster & raster)
   Segmentation s(macroblock_width, macroblock_height);
   s.absolute_segment_adjustments = false;
   s.segment_quantizer_adjustments = {-64, -64, 63, 63};
-  s.segment_filter_adjustments = {0, 0, 0, 0};
 
   /* set a hardcoded segmentation map */
   unsigned half_width = (macroblock_width + 1) / 2;
@@ -688,6 +687,27 @@ vector<uint8_t> Encoder::encode_with_target_size( const VP8Raster & raster, cons
   return encode_with_quantizer( raster, best_y_qi );
 }
 
+ProbabilityArray<num_segments> Encoder::calc_segment_tree_probs(const SegmentationMap & seg_map) const
+{
+  assert(num_segments == 4);
+
+  SafeArray<unsigned, num_segments> counts {0, 0, 0, 0};
+  seg_map.forall(
+    [&counts](const uint8_t segment_id) {
+      counts.at(segment_id)++;
+    });
+
+  unsigned left_size = counts.at(0) + counts.at(1);
+  unsigned right_size = counts.at(2) + counts.at(3);
+
+  ProbabilityArray<num_segments> branch_probs;
+  branch_probs.at(0) = calc_prob(left_size, left_size + right_size);
+  branch_probs.at(1) = calc_prob(counts.at(0), left_size);
+  branch_probs.at(2) = calc_prob(counts.at(2), right_size);
+
+  return branch_probs;
+}
+
 template<class FrameHeaderType>
 void Encoder::set_header_update_segmentation(FrameHeaderType & frame_header,
                                              const Optional<Segmentation> & segmentation)
@@ -711,8 +731,14 @@ void Encoder::set_header_update_segmentation(FrameHeaderType & frame_header,
       }
     }
 
-    /* TODO set segment probabilities based on frequency of segments */
+    /* calculate and update segment probabilities based on frequency of segments */
+    const auto & seg_tree_probs = calc_segment_tree_probs(segmentation->map);
+
     update_seg.mb_segmentation_map.initialize();
+    auto & update_seg_probs = *update_seg.mb_segmentation_map;
+    for (unsigned i = 0; i < update_seg_probs.size(); i++) {
+      update_seg_probs.at(i) = Unsigned<8>(seg_tree_probs.at(i));
+    }
 
     frame_header.update_segmentation = move(update_seg);
   } else {

@@ -392,7 +392,7 @@ vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_part
   /* encode frame header */
   encode( encoder, header() );
 
-  const auto segment_tree_probs = calculate_mb_segment_tree_probs();
+  const auto segment_tree_probs = read_mb_segment_tree_probs();
 
   /* encode the macroblock headers */
   macroblock_headers_.get().forall( [&]( const MacroblockType & macroblock )

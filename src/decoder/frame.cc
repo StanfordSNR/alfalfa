@@ -76,9 +76,9 @@ Frame<FrameHeaderType, MacroblockType>::operator=( Frame && other )
 }
 
 template <class FrameHeaderType, class MacroblockType>
-ProbabilityArray< num_segments > Frame<FrameHeaderType, MacroblockType>::calculate_mb_segment_tree_probs( void ) const
+ProbabilityArray< num_segments > Frame<FrameHeaderType, MacroblockType>::read_mb_segment_tree_probs( void ) const
 {
-  /* calculate segment tree probabilities if map is updated by this frame */
+  /* read segment tree probabilities if probabilities are present in the header */
   ProbabilityArray< num_segments > mb_segment_tree_probs;
 
   if ( header_.update_segmentation.initialized()
@@ -98,7 +98,7 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( BoolDecod
                                                                        const bool error_concealment )
 {
   /* calculate segment tree probabilities if map is updated by this frame */
-  const ProbabilityArray< num_segments > mb_segment_tree_probs = calculate_mb_segment_tree_probs();
+  const ProbabilityArray< num_segments > mb_segment_tree_probs = read_mb_segment_tree_probs();
 
   /* parse the macroblock headers */
   macroblock_headers_.initialize( macroblock_width_, macroblock_height_,

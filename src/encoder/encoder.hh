@@ -347,6 +347,8 @@ private:
   template<class FrameType>
   void update_decoder_state( const FrameType & frame );
 
+  ProbabilityArray<num_segments> calc_segment_tree_probs(const SegmentationMap & seg_map) const;
+
   /* set update_segmentation in frame header based on the given 'segmentation' */
   template<class FrameHeaderType>
   void set_header_update_segmentation(FrameHeaderType & frame_header,
