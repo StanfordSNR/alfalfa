@@ -27,7 +27,7 @@ vp8play_LDADD = ../display/libalfalfadisplay.a $(BASE_LDADD) $(GLU_LIBS) $(GLEW_
 vp8play_LDFLAGS =
 
 xc_enc_SOURCES = xc-enc.cc
-xc_enc_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)
+xc_enc_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD) -lstdc++fs
 
 xc_ssim_SOURCES = xc-ssim.cc
 xc_ssim_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)

@@ -142,7 +142,6 @@ private:
   SafeReferences safe_references_;
 
   bool has_state_;
-  unsigned int frame_id_ {0};
 
   Costs costs_;
 
@@ -367,7 +366,7 @@ private:
 
   void update_rd_multipliers( const Quantizer & quantizer );
 
-  Segmentation detect_roi(const VP8Raster & raster);
+  Segmentation create_segmentation(const VP8Raster & raster, const std::string & bbox_path);
 
 public:
   Encoder( const uint16_t s_width, const uint16_t s_height,
@@ -389,7 +388,7 @@ public:
   std::vector<uint8_t> encode_with_quantizer( const VP8Raster & raster,
                                               const uint8_t y_ac_qi );
 
-  std::vector<uint8_t> encode_for_cv(const VP8Raster & raster);
+  std::vector<uint8_t> encode_for_cv(const VP8Raster & raster, const std::string & bbox_path);
 
   /* Tries to encode the given raster with the best possible quality, without
    * exceeding the target size. */

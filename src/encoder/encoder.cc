@@ -37,6 +37,7 @@
 #include "encoder.hh"
 #include "frame_header.hh"
 #include "tokens.hh"
+#include "tokenize.hh"
 
 using namespace std;
 
@@ -574,39 +575,45 @@ vector<uint8_t> Encoder::encode_with_quantizer( const VP8Raster & raster, const 
   }
 }
 
-Segmentation Encoder::detect_roi(const VP8Raster & raster)
+Segmentation Encoder::create_segmentation(const VP8Raster & raster, const string & bbox_path)
 {
-  // TODO: current implementation is for debugging purposed only
   unsigned macroblock_width = VP8Raster::macroblock_dimension(raster.display_width());
   unsigned macroblock_height = VP8Raster::macroblock_dimension(raster.display_height());
 
-  /* set a hardcoded segment feature data */
   Segmentation s(macroblock_width, macroblock_height);
-  s.absolute_segment_adjustments = false;
-  s.segment_quantizer_adjustments = {-64, -64, 63, 63};
+  s.absolute_segment_adjustments = true;
+  s.segment_quantizer_adjustments = {127, 64, 32, 0};
 
-  /* set a hardcoded segmentation map */
-  unsigned half_width = (macroblock_width + 1) / 2;
-  unsigned half_height = (macroblock_height + 1) / 2;
+  /* read bboxes from csv and set segmentation map */
+  ifstream csv_stream(bbox_path);
+  for (string line; getline(csv_stream, line);) {
+    vector<string> items = split(line, ",");
 
-  s.map.forall_ij(
-    [&](uint8_t & v, const unsigned column, const unsigned row) {
-      if (half_width > 0 and half_height > 0) {
-        if (frame_id_ % 2 == 0) {
-          v = 2 * (column / half_width) + row / half_height;
-        } else {
-          v = 2 * (1 - column / half_width) + row / half_height;
-        }
-      } else {
-        v = 0;
+    if (items.size() != 6) {
+      throw runtime_error("invalid CSV file: " + bbox_path);
+    }
+
+    unsigned c_min = max(stoi(items[2]) - 10, 0);
+    unsigned c_max = min(stoi(items[4]) + 10, (int)raster.display_width());
+    unsigned r_min = max(stoi(items[3]) - 10, 0);
+    unsigned r_max = min(stoi(items[5]) + 10, (int)raster.display_height());
+
+    c_min = VP8Raster::macroblock_dimension(c_min);
+    c_max = VP8Raster::macroblock_dimension(c_max);
+    r_min = VP8Raster::macroblock_dimension(r_min);
+    r_max = VP8Raster::macroblock_dimension(r_max);
+
+    for (unsigned c = c_min; c <= c_max; c++) {
+      for (unsigned r = r_min; r <= r_max; r++) {
+        s.map.at(c, r) = 2;
       }
     }
-  );
+  }
 
   return s;
 }
 
-vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster)
+vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster, const string & bbox_path)
 {
   if (encode_quality_ != CV_QUALITY) {
     throw runtime_error("encode quality must be CV_QUALITY");
@@ -616,12 +623,10 @@ vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster)
     throw runtime_error("scaling is not supported");
   }
 
-  frame_id_++;
-
   QuantIndices quant_indices;
   quant_indices.y_ac_qi = DEFAULT_QUANTIZER;
 
-  Segmentation segmentation = detect_roi(raster);
+  Segmentation segmentation = create_segmentation(raster, bbox_path);
 
   if (not has_state_) {
     has_state_ = true;

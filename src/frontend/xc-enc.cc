@@ -47,6 +47,7 @@
 #include "ivf_writer.hh"
 #include "display.hh"
 #include "enc_state_serializer.hh"
+#include "filesystem.hh"
 
 using namespace std;
 
@@ -68,6 +69,7 @@ void usage_error( const string & program_name )
        << "                                         best: best quality, slowest (default)"   << endl
        << "                                         rt:   real-time"                         << endl
        << "                                         cv:   for computer vision tasks"         << endl
+       << " --bbox=<dir>                          Bounding boxes of objects in each frame"   << endl
        << " -F <arg>, --frame-sizes=<arg>         Target frame sizes file"                   << endl
        << "                                         Each line specifies the target size"     << endl
        << "                                         in bytes for the corresponding frame."   << endl
@@ -113,6 +115,7 @@ int main( int argc, char *argv[] )
     string pred_file = "";
     string pred_ivf_initial_state = "";
     string frame_sizes_file = "";
+    string bbox_dir = "";
     double ssim = 0.99;
     bool two_pass = false;
     bool re_encode_only = false;
@@ -141,11 +144,12 @@ int main( int argc, char *argv[] )
       { "quality",              required_argument, nullptr, 'q' },
       { "frame-sizes",          required_argument, nullptr, 'F' },
       { "no-wait",              no_argument,       nullptr, 'W' },
+      { "bbox",                 required_argument, nullptr, 'b' },
       { 0, 0, 0, 0 }
     };
 
     while ( true ) {
-      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:F:W", command_line_options, nullptr );
+      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:F:Wb:", command_line_options, nullptr );
 
       if ( opt == -1 ) {
         break;
@@ -222,6 +226,10 @@ int main( int argc, char *argv[] )
         encoder_mode = TARGET_FRAME_SIZE;
         break;
 
+      case 'b':
+        bbox_dir = optarg;
+        break;
+
       default:
         throw runtime_error( "getopt_long: unexpected return value." );
       }
@@ -230,6 +238,12 @@ int main( int argc, char *argv[] )
     if ( optind >= argc ) {
       usage_error( argv[ 0 ] );
       return EXIT_FAILURE;
+    }
+
+    if (quality == CV_QUALITY) {
+      if (bbox_dir.empty()) {
+        throw runtime_error("bbox_dir must be provided for CV_QUALITY");
+      }
     }
 
     string input_file = argv[ optind ];
@@ -356,7 +370,7 @@ int main( int argc, char *argv[] )
       for ( auto raster = input_reader->get_next_frame(); raster.initialized();
             raster = input_reader->get_next_frame() ) {
 
-        cerr << "Encoding frame #" << frame_no++ << "...";
+        cerr << "Encoding frame #" << ++frame_no << "...";
         const auto encode_beginning = chrono::system_clock::now();
 
         switch ( encoder_mode ) {
@@ -378,8 +392,15 @@ int main( int argc, char *argv[] )
         }
 
         case CV_MODE:
-          output.append_frame(encoder.encode_for_cv(raster.get()));
+        {
+          fs::path bbox_path = fs::path(bbox_dir) / (to_string(frame_no) + ".csv");
+          if (not fs::is_regular_file(bbox_path)) {
+            throw runtime_error(bbox_path.string() + " does not exist");
+          }
+
+          output.append_frame(encoder.encode_for_cv(raster.get(), bbox_path));
           break;
+        }
 
         default:
           throw Unsupported( "unsupported encoder mode." );
