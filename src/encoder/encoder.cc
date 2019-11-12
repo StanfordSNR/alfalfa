@@ -162,7 +162,7 @@ vector<uint8_t> Encoder::write_frame( const FrameType & frame,
   safe_references_.golden = move( SafeReferences::load( references_.golden ) );
   safe_references_.alternative = move( SafeReferences::load( references_.alternative ) );
 
-  if ( encode_quality_ == REALTIME_QUALITY ) {
+  if ( encode_quality_ == REALTIME_QUALITY or encode_quality_ == CV_QUALITY ) {
     loop_filter_level_.reset( frame.header().loop_filter_level );
     last_y_ac_qi_.reset( frame.header().quant_indices.y_ac_qi );
   }

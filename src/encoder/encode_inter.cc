@@ -295,7 +295,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
       /* In the case of REALTIME_QUALITY, we should limit the number of times
        * that we search for a new motion vector.
        */
-      if ( encode_quality_ == REALTIME_QUALITY ) {
+      if ( encode_quality_ == REALTIME_QUALITY or encode_quality_ == CV_QUALITY ) {
         if ( not ( frame_mb.context().column % 4 == 0 and frame_mb.context().row % 4 == 0 ) ) {
           continue;
         }

@@ -100,7 +100,8 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
 
   unsigned int total_modes = B_PRED;
 
-  if ( encode_quality_ == REALTIME_QUALITY and typeid( frame_mb ) == typeid( InterFrameMacroblock ) ) {
+  if ( (encode_quality_ == REALTIME_QUALITY or encode_quality_ == CV_QUALITY )
+       and typeid( frame_mb ) == typeid( InterFrameMacroblock ) ) {
     // When running the real time mode, we don't consider B_PRED for inter-frames
     // macroblocks.
     total_modes = B_PRED - 1;
