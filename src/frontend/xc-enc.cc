@@ -73,6 +73,7 @@ void usage_error( const string & program_name )
        << " -F <arg>, --frame-sizes=<arg>         Target frame sizes file"                   << endl
        << "                                         Each line specifies the target size"     << endl
        << "                                         in bytes for the corresponding frame."   << endl
+       << " -R <arg>, --frame-rate=<arg>          Frame rate"                                << endl
        << " --two-pass                            Do the second encoding pass"               << endl
                                                                                              << endl
        << "Re-encode:"                                                                       << endl
@@ -116,6 +117,7 @@ int main( int argc, char *argv[] )
     string pred_ivf_initial_state = "";
     string frame_sizes_file = "";
     string bbox_dir = "";
+    uint32_t frame_rate = 1;
     double ssim = 0.99;
     bool two_pass = false;
     bool re_encode_only = false;
@@ -145,11 +147,12 @@ int main( int argc, char *argv[] )
       { "frame-sizes",          required_argument, nullptr, 'F' },
       { "no-wait",              no_argument,       nullptr, 'W' },
       { "bbox",                 required_argument, nullptr, 'b' },
+      { "frame-rate",           required_argument, nullptr, 'R' },
       { 0, 0, 0, 0 }
     };
 
     while ( true ) {
-      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:F:Wb:", command_line_options, nullptr );
+      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:F:Wb:R:", command_line_options, nullptr );
 
       if ( opt == -1 ) {
         break;
@@ -230,6 +233,10 @@ int main( int argc, char *argv[] )
         bbox_dir = optarg;
         break;
 
+      case 'R':
+        frame_rate = stoi(optarg);
+        break;
+
       default:
         throw runtime_error( "getopt_long: unexpected return value." );
       }
@@ -275,7 +282,7 @@ int main( int argc, char *argv[] )
       pred_decoder = EncoderStateDeserializer::build<Decoder>( pred_ivf_initial_state );
     }
 
-    IVFWriter output { output_file, "VP80", input_reader->display_width(), input_reader->display_height(), 1, 1 };
+    IVFWriter output { output_file, "VP80", input_reader->display_width(), input_reader->display_height(), frame_rate, 1 };
 
     if ( re_encode_only ) {
       /* re-encoding */
