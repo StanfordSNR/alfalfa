@@ -582,7 +582,12 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster, const string
 
   Segmentation s(macroblock_width, macroblock_height);
   s.absolute_segment_adjustments = true;
-  s.segment_quantizer_adjustments = {127, 64, 32, 0};
+  s.segment_quantizer_adjustments = {64, 32, 16, 0};
+
+  if (not has_state_) {  /* encode with high quality on the first key frame */
+    s.map.fill(1);
+    return s;
+  }
 
   /* read bboxes from csv and set segmentation map */
   ifstream csv_stream(bbox_path);
@@ -605,7 +610,7 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster, const string
 
     for (unsigned c = c_min; c <= c_max; c++) {
       for (unsigned r = r_min; r <= r_max; r++) {
-        s.map.at(c, r) = 2;
+        s.map.at(c, r) = 1;
       }
     }
   }
