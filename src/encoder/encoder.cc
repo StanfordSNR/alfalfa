@@ -582,10 +582,10 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster, const string
 
   Segmentation s(macroblock_width, macroblock_height);
   s.absolute_segment_adjustments = true;
-  s.segment_quantizer_adjustments = {64, 32, 16, 0};
+  s.segment_quantizer_adjustments = {127, 64, 32, 16};
 
   if (not has_state_) {  /* encode with high quality on the first key frame */
-    s.map.fill(1);
+    s.map.fill(2);
     return s;
   }
 
@@ -608,9 +608,9 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster, const string
     r_min = VP8Raster::macroblock_dimension(r_min);
     r_max = VP8Raster::macroblock_dimension(r_max);
 
-    for (unsigned c = c_min; c <= c_max; c++) {
-      for (unsigned r = r_min; r <= r_max; r++) {
-        s.map.at(c, r) = 1;
+    for (unsigned c = c_min; c < c_max; c++) {
+      for (unsigned r = r_min; r < r_max; r++) {
+        s.map.at(c, r) = 2;
       }
     }
   }
