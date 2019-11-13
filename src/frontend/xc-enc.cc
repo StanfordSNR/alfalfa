@@ -117,7 +117,7 @@ int main( int argc, char *argv[] )
     string pred_ivf_initial_state = "";
     string frame_sizes_file = "";
     string bbox_dir = "";
-    uint32_t frame_rate = 1;
+    unsigned frame_rate = 1;
     double ssim = 0.99;
     bool two_pass = false;
     bool re_encode_only = false;

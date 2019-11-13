@@ -49,9 +49,10 @@ int main( int argc, char *argv[] )
 
     Optional<FileDescriptor> y4m_fd;
     char *decoder_state = NULL;
+    unsigned frame_rate = 24;
 
     while (true) {
-      const int opt = getopt(argc, argv, "s:o:");
+      const int opt = getopt(argc, argv, "s:o:R:");
 
       if (opt == -1) {
         break;
@@ -64,6 +65,10 @@ int main( int argc, char *argv[] )
 
         case 'o':
           y4m_fd.initialize(fopen(optarg, "wb"));
+          break;
+
+        case 'R':
+          frame_rate = stoi(optarg);
           break;
 
         default:
@@ -85,7 +90,9 @@ int main( int argc, char *argv[] )
       if (y4m_fd.initialized()) {
         if (lseek(y4m_fd.get().fd_num(), 0, SEEK_CUR) == 0) {
           // position 0: we haven't written a header yet
-          y4m_fd.get().write(YUV4MPEGHeader(raster).to_string());
+          auto header = YUV4MPEGHeader(raster);
+          header.fps_numerator = frame_rate;
+          y4m_fd.get().write(header.to_string());
         }
 
         YUV4MPEGFrameWriter::write(raster, y4m_fd.get());
@@ -101,6 +108,7 @@ int main( int argc, char *argv[] )
 }
 
 int usage(char *argv0) {
-  cerr << "Usage: " << argv0 << " [-s decoder_state] [-o y4m_output] input_file" << endl;
+  cerr << "Usage: " << argv0
+       << " [-s decoder_state] [-R frame_rate] [-o y4m_output] input_file" << endl;
   return EXIT_FAILURE;
 }
