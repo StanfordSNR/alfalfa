@@ -627,11 +627,11 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
       auto temp_mb = temp_raster().macroblock( mb_column, mb_row );
       auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
-      Optional<uint8_t> segment_id; /* use frame-level quantization by default */
+      uint8_t segment_id = num_segments; /* use frame-level quantization by default */
       if (segmentation) {
-        segment_id.initialize(segmentation->map.at(mb_column, mb_row));
-        frame_mb.mutable_segment_id_update() = Tree<uint8_t, num_segments, segment_id_tree>(*segment_id);
-        frame_mb.mutable_segment_id() = *segment_id;
+        segment_id = segmentation->map.at(mb_column, mb_row);
+        frame_mb.mutable_segment_id_update() = Tree<uint8_t, num_segments, segment_id_tree>(segment_id);
+        frame_mb.mutable_segment_id() = segment_id;
       } else {
         frame_mb.mutable_segment_id_update().clear();
         frame_mb.mutable_segment_id() = num_segments;

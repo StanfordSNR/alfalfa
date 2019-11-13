@@ -582,7 +582,7 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster, const string
 
   Segmentation s(macroblock_width, macroblock_height);
   s.absolute_segment_adjustments = true;
-  s.segment_quantizer_adjustments = {127, 64, 32, 16};
+  s.segment_quantizer_adjustments = {127, 64, 32, 0};
 
   if (not has_state_) {  /* encode with high quality on the first key frame */
     s.map.fill(2);
@@ -833,19 +833,19 @@ Quantizers::Quantizers(const QuantIndices & quant_indices,
   }
 }
 
-const Quantizer & Quantizers::get_quantizer(const Optional<uint8_t> & segment_id) const
+const Quantizer & Quantizers::get_quantizer(const uint8_t segment_id) const
 {
-  if (segment_id and segment_quantizers) {
-    return segment_quantizers->at(*segment_id);
+  if (segment_id < num_segments and segment_quantizers) {
+    return segment_quantizers->at(segment_id);
   }
 
   return frame_quantizer;
 }
 
-const QuantIndices & Quantizers::get_quant_indices(const Optional<uint8_t> & segment_id) const
+const QuantIndices & Quantizers::get_quant_indices(const uint8_t segment_id) const
 {
-  if (segment_id and segment_quant_indices) {
-    return segment_quant_indices->at(*segment_id);
+  if (segment_id < num_segments and segment_quant_indices) {
+    return segment_quant_indices->at(segment_id);
   }
 
   return frame_quant_indices;
