@@ -123,7 +123,7 @@ public:
   Optional< Tree< uint8_t, num_segments, segment_id_tree > > & mutable_segment_id_update( void ) { return segment_id_update_; }
 
   uint8_t segment_id() const { return segment_id_; }
-  uint8_t & mutable_segment_id() { return segment_id_; }
+  void set_segment_id( const uint8_t segment_id ) { segment_id_ = segment_id; }
 
   bool skip_residue() const { return skip_residue_; }
   void set_skip_residue(const bool skip_residue) { skip_residue_ = skip_residue; }

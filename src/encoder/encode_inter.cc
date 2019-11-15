@@ -650,10 +650,10 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
       if (segmentation) {
         segment_id = segmentation->map.at(mb_column, mb_row);
         frame_mb.mutable_segment_id_update() = Tree<uint8_t, num_segments, segment_id_tree>(segment_id);
-        frame_mb.mutable_segment_id() = segment_id;
+        frame_mb.set_segment_id(segment_id);
       } else {
         frame_mb.mutable_segment_id_update().clear();
-        frame_mb.mutable_segment_id() = num_segments;
+        frame_mb.set_segment_id(num_segments);
       }
 
       /* select quantizer based on segment id */
