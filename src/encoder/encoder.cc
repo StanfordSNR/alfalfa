@@ -805,6 +805,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::zero_out()
       block.zero_out();
     } );
 
+  has_nonzero_ = false;
   mb_skip_coeff_.reset( true );
 }
 

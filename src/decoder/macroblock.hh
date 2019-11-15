@@ -66,6 +66,7 @@ private:
   TwoDSubRange< UVBlock, 2, 2 > U_, V_;
 
   bool has_nonzero_ { false };
+  bool skip_residue_ { false };
 
   void decode_prediction_modes( BoolDecoder & data,
                                 const ProbabilityTables & probability_tables,
@@ -123,6 +124,9 @@ public:
 
   uint8_t segment_id() const { return segment_id_; }
   uint8_t & mutable_segment_id() { return segment_id_; }
+
+  bool skip_residue() const { return skip_residue_; }
+  void set_skip_residue(const bool skip_residue) { skip_residue_ = skip_residue; }
 
   void serialize( BoolEncoder & encoder,
                   const FrameHeaderType & frame_header,

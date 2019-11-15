@@ -484,7 +484,8 @@ Segmentation::Segmentation( const Segmentation & other )
   : absolute_segment_adjustments( other.absolute_segment_adjustments ),
     segment_quantizer_adjustments( other.segment_quantizer_adjustments ),
     segment_filter_adjustments( other.segment_filter_adjustments ),
-    map( other.map.width(), other.map.height() )
+    map( other.map.width(), other.map.height() ),
+    thresholds( other.thresholds )
 {
   map.copy_from( other.map );
 }
@@ -493,7 +494,8 @@ Segmentation::Segmentation(Segmentation && other)
   : absolute_segment_adjustments(move(other.absolute_segment_adjustments)),
     segment_quantizer_adjustments(move(other.segment_quantizer_adjustments)),
     segment_filter_adjustments(move(other.segment_filter_adjustments)),
-    map(move(other.map))
+    map(move(other.map)),
+    thresholds(move(other.thresholds))
 {}
 
 size_t DecoderHash::hash( void ) const

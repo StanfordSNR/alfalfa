@@ -252,7 +252,8 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                      const Quantizer & quantizer,
                                      MVComponentCounts & /* component_counts */,
                                      const size_t y_ac_qi,
-                                     const EncoderPass encoder_pass )
+                                     const EncoderPass encoder_pass,
+                                     const unsigned residue_threshold )
 {
   MBPredictionData best_pred;
 
@@ -381,7 +382,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
 
     luma_mb_apply_inter_prediction( original_mb, reconstructed_mb, frame_mb,
                                     quantizer, best_pred.prediction_mode,
-                                    best_mv );
+                                    best_mv, residue_threshold );
   }
 }
 
@@ -394,10 +395,23 @@ void Encoder::luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & orig
                                               InterFrameMacroblock & frame_mb,
                                               const Quantizer & quantizer,
                                               const mbmode best_pred,
-                                              const MotionVector best_mv )
+                                              const MotionVector best_mv,
+                                              const unsigned residue_threshold )
 {
   frame_mb.Y2().set_prediction_mode( best_pred );
   frame_mb.set_base_motion_vector( best_mv );
+
+  unsigned sse_threshold = residue_threshold * original_mb.Y.dimension * original_mb.Y.dimension;
+  if (residue_threshold == 0 or
+      sse(original_mb.Y, reconstructed_mb.Y.contents()) >= sse_threshold) {
+    frame_mb.set_skip_residue(false);
+  } else {
+    frame_mb.Y2().set_coded(best_pred != SPLITMV);
+    frame_mb.Y2().calculate_has_nonzero();
+    frame_mb.zero_out();
+    frame_mb.set_skip_residue(true);
+    return;
+  }
 
   if ( best_pred == SPLITMV ) {
     frame_mb.Y().forall_ij(
@@ -492,6 +506,11 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
                                   reference.U(), reconstructed_mb.U.mutable_contents() );
     reference_mb.V().inter_predict( frame_mb.U().at( 0, 0 ).motion_vector(),
                                   reference.V(), reconstructed_mb.V.mutable_contents() );
+  }
+
+  /* skip encoding residue for chroma if residue has been skipped for luma */
+  if (frame_mb.skip_residue()) {
+    return;
   }
 
   frame_mb.U().forall_ij(
@@ -641,11 +660,13 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
       const auto & quantizer = quantizers.get_quantizer(segment_id);
       const size_t mb_y_ac_qi = quantizers.get_quant_indices(segment_id).y_ac_qi;
 
+      const unsigned residue_threshold = segmentation ? segmentation->thresholds.at(segment_id) : 0;
+
       update_rd_multipliers(quantizer);
 
       // Process Y and Y2
       luma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb, frame_mb,
-                             quantizer, component_counts, mb_y_ac_qi, FIRST_PASS );
+                             quantizer, component_counts, mb_y_ac_qi, FIRST_PASS, residue_threshold );
 
       if ( frame_mb.inter_coded() ) {
         chroma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,

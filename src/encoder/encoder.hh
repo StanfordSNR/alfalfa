@@ -207,14 +207,16 @@ private:
                               const Quantizer & quantizer,
                               MVComponentCounts & component_counts,
                               const size_t y_ac_qi,
-                              const EncoderPass encoder_pass );
+                              const EncoderPass encoder_pass,
+                              const unsigned residue_threhold = 0 );
 
   void luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & original_mb,
                                        VP8Raster::Macroblock & reconstructed_mb,
                                        InterFrameMacroblock & frame_mb,
                                        const Quantizer & quantizer,
                                        const mbmode best_pred,
-                                       const MotionVector best_mv );
+                                       const MotionVector best_mv,
+                                       const unsigned residue_threhold = 0 );
 
   void chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                 VP8Raster::Macroblock & constructed_mb,

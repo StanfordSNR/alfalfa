@@ -164,6 +164,9 @@ struct Segmentation
   /* Mapping of macroblocks to segments */
   SegmentationMap map;
 
+  /* MSE thresholds below which residues will not be encoded */
+  SafeArray< unsigned, num_segments > thresholds {{}};
+
   template <class HeaderType>
   Segmentation( const HeaderType & header,
                 const unsigned int width,
