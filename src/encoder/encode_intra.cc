@@ -461,11 +461,9 @@ pair<KeyFrame &, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & ras
     optimize_probability_tables( frame, token_branch_counts );
   }
 
-  optimize_prob_skip( frame );
-
   frame.relink_y2_blocks();
 
-  // optimize_prob_skip( frame );
+  optimize_prob_skip( frame );
   apply_best_loopfilter_settings( raster, reconstructed_raster_handle.get(), frame );
 
   RasterHandle immutable_raster( move( reconstructed_raster_handle ) );

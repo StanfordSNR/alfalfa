@@ -295,7 +295,6 @@ private:
 
   VP8Raster & temp_raster() { return temp_raster_handle_.get(); }
 
-  /* this function returns the ssim value as the output */
   template<class FrameType>
   void apply_best_loopfilter_settings( const VP8Raster & original,
                                        VP8Raster & reconstructed,

@@ -462,14 +462,6 @@ void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
                                               VP8Raster & reconstructed,
                                               FrameType & frame )
 {
-  frame.mutable_header().mode_lf_adjustments.reset();
-  frame.mutable_header().mode_lf_adjustments.get().initialize();
-
-  for ( size_t i = 0; i < 4; i++ ) {
-    frame.mutable_header().mode_lf_adjustments.get().get().ref_update.at( i ).initialize( 0 );
-    frame.mutable_header().mode_lf_adjustments.get().get().mode_update.at( i ).initialize( 0 );
-  }
-
   uint8_t best_lf_level = 0;
   double best_ssim = -1.0;
 
