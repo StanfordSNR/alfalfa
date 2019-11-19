@@ -575,42 +575,55 @@ vector<uint8_t> Encoder::encode_with_quantizer( const VP8Raster & raster, const 
   }
 }
 
-Segmentation Encoder::create_segmentation(const VP8Raster & raster, const string & bbox_path)
+Segmentation Encoder::create_segmentation(const VP8Raster & raster,
+                                          const QuantIndices & quant_indices,
+                                          const string & bbox_path)
 {
   unsigned macroblock_width = VP8Raster::macroblock_dimension(raster.display_width());
   unsigned macroblock_height = VP8Raster::macroblock_dimension(raster.display_height());
 
   Segmentation s(macroblock_width, macroblock_height);
-  s.absolute_segment_adjustments = true;
+  s.absolute_segment_adjustments = false; /* relative adjustments */
+
   s.segment_quantizer_adjustments = {127, 64, 32, 0};
+  if (not s.absolute_segment_adjustments) {
+    for (unsigned i = 0; i < s.segment_quantizer_adjustments.size(); i++) {
+      s.segment_quantizer_adjustments.at(i) -= quant_indices.y_ac_qi;
+    }
+  }
+
+  s.segment_filter_adjustments = {0, 0, 0, 0};
+  s.thresholds = {0, 0, 0, 0};
 
   if (not has_state_) {  /* encode with high quality on the first key frame */
     s.map.fill(2);
     return s;
   }
 
-  /* read bboxes from csv and set segmentation map */
-  ifstream csv_stream(bbox_path);
-  for (string line; getline(csv_stream, line);) {
-    vector<string> items = split(line, ",");
+  if (not bbox_path.empty()) {
+    /* read bboxes from csv and set segmentation map */
+    ifstream csv_stream(bbox_path);
+    for (string line; getline(csv_stream, line);) {
+      vector<string> items = split(line, ",");
 
-    if (items.size() != 6) {
-      throw runtime_error("invalid CSV file: " + bbox_path);
-    }
+      if (items.size() != 6) {
+        throw runtime_error("invalid CSV file: " + bbox_path);
+      }
 
-    unsigned c_min = max(stoi(items[2]) - 10, 0);
-    unsigned c_max = min(stoi(items[4]) + 10, (int)raster.display_width());
-    unsigned r_min = max(stoi(items[3]) - 10, 0);
-    unsigned r_max = min(stoi(items[5]) + 10, (int)raster.display_height());
+      unsigned c_min = max(stoi(items[2]) - 10, 0);
+      unsigned c_max = min(stoi(items[4]) + 10, (int)raster.display_width());
+      unsigned r_min = max(stoi(items[3]) - 10, 0);
+      unsigned r_max = min(stoi(items[5]) + 10, (int)raster.display_height());
 
-    c_min = VP8Raster::macroblock_dimension(c_min);
-    c_max = VP8Raster::macroblock_dimension(c_max);
-    r_min = VP8Raster::macroblock_dimension(r_min);
-    r_max = VP8Raster::macroblock_dimension(r_max);
+      c_min = VP8Raster::macroblock_dimension(c_min);
+      c_max = VP8Raster::macroblock_dimension(c_max);
+      r_min = VP8Raster::macroblock_dimension(r_min);
+      r_max = VP8Raster::macroblock_dimension(r_max);
 
-    for (unsigned c = c_min; c < c_max; c++) {
-      for (unsigned r = r_min; r < r_max; r++) {
-        s.map.at(c, r) = 2;
+      for (unsigned c = c_min; c < c_max; c++) {
+        for (unsigned r = r_min; r < r_max; r++) {
+          s.map.at(c, r) = 2;
+        }
       }
     }
   }
@@ -629,9 +642,8 @@ vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster, const string & 
   }
 
   QuantIndices quant_indices;
-  quant_indices.y_ac_qi = DEFAULT_QUANTIZER;
-
-  Segmentation segmentation = create_segmentation(raster, bbox_path);
+  quant_indices.y_ac_qi = 64;
+  Segmentation segmentation = create_segmentation(raster, quant_indices, bbox_path);
 
   if (not has_state_) {
     has_state_ = true;

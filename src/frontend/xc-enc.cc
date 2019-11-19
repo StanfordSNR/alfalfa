@@ -247,12 +247,6 @@ int main( int argc, char *argv[] )
       return EXIT_FAILURE;
     }
 
-    if (quality == CV_QUALITY) {
-      if (bbox_dir.empty()) {
-        throw runtime_error("bbox_dir must be provided for CV_QUALITY");
-      }
-    }
-
     string input_file = argv[ optind ];
     shared_ptr<FrameInput> input_reader;
 
@@ -400,12 +394,17 @@ int main( int argc, char *argv[] )
 
         case CV_MODE:
         {
-          fs::path bbox_path = fs::path(bbox_dir) / (to_string(frame_no) + ".csv");
-          if (not fs::is_regular_file(bbox_path)) {
-            throw runtime_error(bbox_path.string() + " does not exist");
+          if (bbox_dir.empty()) {
+            output.append_frame(encoder.encode_for_cv(raster.get()));
+          } else {
+            fs::path bbox_path = fs::path(bbox_dir) / (to_string(frame_no) + ".csv");
+            if (not fs::is_regular_file(bbox_path)) {
+              throw runtime_error(bbox_path.string() + " does not exist");
+            }
+
+            output.append_frame(encoder.encode_for_cv(raster.get(), bbox_path));
           }
 
-          output.append_frame(encoder.encode_for_cv(raster.get(), bbox_path));
           break;
         }
 
