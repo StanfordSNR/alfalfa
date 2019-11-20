@@ -592,21 +592,30 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster,
 
   Segmentation s(width_in_mb, height_in_mb);
   s.absolute_segment_adjustments = false; /* relative adjustments */
-  // s.segment_filter_adjustments = {1, 1, 1, 1};
+  // s.segment_filter_adjustments = {0, 0, 0, 0};
 
-  s.segment_quantizer_adjustments = {127, 64, 32, 0};
+  uint8_t bg_segid = num_segments, fg_segid = num_segments;
+  if (bg_qi_ and fg_qi_) {
+    s.segment_quantizer_adjustments = {127, 64, 32, 16};
+    s.thresholds = {0, 0, 0, 0};
+
+    for (unsigned i = 0; i < num_segments; i++) {
+      if (*bg_qi_ == s.segment_quantizer_adjustments.at(i)) { bg_segid = i; }
+      if (*fg_qi_ == s.segment_quantizer_adjustments.at(i)) { fg_segid = i; }
+    }
+  }
+
+  if (bg_segid >= num_segments or fg_segid >= num_segments) {
+    throw runtime_error("Invalid --bg or --fg");
+  }
+
   if (not s.absolute_segment_adjustments) {
-    for (unsigned i = 0; i < s.segment_quantizer_adjustments.size(); i++) {
+    for (unsigned i = 0; i < num_segments; i++) {
       s.segment_quantizer_adjustments.at(i) -= quant_indices.y_ac_qi;
     }
   }
 
-  s.thresholds = {0, 0, 0, 0};
-
-  if (not has_state_) {  /* encode with high quality on the first key frame */
-    s.map.fill(2);
-    return s;
-  }
+  s.map.fill(bg_segid);
 
   if (not bbox_path.empty()) {
     int mb_side = VP8Raster::macroblock_side;
@@ -631,10 +640,12 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster,
 
       for (unsigned c = c_min; c <= c_max; c++) {
         for (unsigned r = r_min; r <= r_max; r++) {
-          s.map.at(c, r) = 2;
+          s.map.at(c, r) = fg_segid;
         }
       }
     }
+  } else {
+    throw runtime_error("bbox_path is empty");
   }
 
   return s;

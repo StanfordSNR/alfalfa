@@ -70,6 +70,8 @@ void usage_error( const string & program_name )
        << "                                         rt:   real-time"                         << endl
        << "                                         cv:   for computer vision tasks"         << endl
        << " --bbox=<dir>                          Bounding boxes of objects in each frame"   << endl
+       << " --bg-qi=<arg>                         Background quantization index"             << endl
+       << " --fg-qi=<arg>                         Forground quantization index"              << endl
        << " -F <arg>, --frame-sizes=<arg>         Target frame sizes file"                   << endl
        << "                                         Each line specifies the target size"     << endl
        << "                                         in bytes for the corresponding frame."   << endl
@@ -125,6 +127,7 @@ int main( int argc, char *argv[] )
     bool extra_frame_chunk = false;
     bool no_wait = false;
     Optional<uint8_t> y_ac_qi;
+    Optional<uint8_t> bg_qi, fg_qi;
     EncoderQuality quality = BEST_QUALITY;
 
     EncoderMode encoder_mode = MINIMUM_SSIM;
@@ -146,13 +149,15 @@ int main( int argc, char *argv[] )
       { "quality",              required_argument, nullptr, 'q' },
       { "frame-sizes",          required_argument, nullptr, 'F' },
       { "no-wait",              no_argument,       nullptr, 'W' },
-      { "bbox",                 required_argument, nullptr, 'b' },
+      { "bbox",                 required_argument, nullptr, 'B' },
       { "frame-rate",           required_argument, nullptr, 'R' },
+      { "bg-qi",                required_argument, nullptr, '3' },
+      { "fg-qi",                required_argument, nullptr, '4' },
       { 0, 0, 0, 0 }
     };
 
     while ( true ) {
-      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:F:Wb:R:", command_line_options, nullptr );
+      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:F:WB:R:3:4:", command_line_options, nullptr );
 
       if ( opt == -1 ) {
         break;
@@ -229,12 +234,20 @@ int main( int argc, char *argv[] )
         encoder_mode = TARGET_FRAME_SIZE;
         break;
 
-      case 'b':
+      case 'B':
         bbox_dir = optarg;
         break;
 
       case 'R':
         frame_rate = stoi(optarg);
+        break;
+
+      case '3':
+        bg_qi = stoul(optarg);
+        break;
+
+      case '4':
+        fg_qi = stoul(optarg);
         break;
 
       default:
@@ -350,6 +363,11 @@ int main( int argc, char *argv[] )
                    two_pass, quality )
         : Encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
                    two_pass, quality );
+
+      if (quality == CV_QUALITY) {
+        if (bg_qi) { encoder.set_bg_qi(*bg_qi); }
+        if (fg_qi) { encoder.set_fg_qi(*fg_qi); }
+      }
 
       if ( not input_state.empty() ) {
         output.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );

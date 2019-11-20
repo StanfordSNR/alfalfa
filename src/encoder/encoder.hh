@@ -168,6 +168,9 @@ private:
   uint32_t RATE_MULTIPLIER { 300 };
   uint32_t DISTORTION_MULTIPLIER { 1 };
 
+  Optional<uint8_t> bg_qi_ {};
+  Optional<uint8_t> fg_qi_ {};
+
   /* this struct will hold stats about the latest encoded frame */
   struct EncodeStats
   {
@@ -416,6 +419,9 @@ public:
   EncodeStats stats() { return encode_stats_; }
 
   uint32_t minihash() const;
+
+  void set_bg_qi(const uint8_t bg_qi) { bg_qi_ = bg_qi; }
+  void set_fg_qi(const uint8_t fg_qi) { fg_qi_ = fg_qi; }
 };
 
 #endif /* ENCODER_HH */
