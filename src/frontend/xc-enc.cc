@@ -72,6 +72,8 @@ void usage_error( const string & program_name )
        << " --bbox=<dir>                          Bounding boxes of objects in each frame"   << endl
        << " --bg-qi=<arg>                         Background quantization index"             << endl
        << " --fg-qi=<arg>                         Forground quantization index"              << endl
+       << " --bg-th=<arg>                         Background residue threshold"              << endl
+       << " --fg-th=<arg>                         Forground residue threshold"               << endl
        << " -F <arg>, --frame-sizes=<arg>         Target frame sizes file"                   << endl
        << "                                         Each line specifies the target size"     << endl
        << "                                         in bytes for the corresponding frame."   << endl
@@ -128,6 +130,7 @@ int main( int argc, char *argv[] )
     bool no_wait = false;
     Optional<uint8_t> y_ac_qi;
     Optional<uint8_t> bg_qi, fg_qi;
+    Optional<unsigned> bg_th, fg_th;
     EncoderQuality quality = BEST_QUALITY;
 
     EncoderMode encoder_mode = MINIMUM_SSIM;
@@ -153,11 +156,13 @@ int main( int argc, char *argv[] )
       { "frame-rate",           required_argument, nullptr, 'R' },
       { "bg-qi",                required_argument, nullptr, '3' },
       { "fg-qi",                required_argument, nullptr, '4' },
+      { "bg-th",                required_argument, nullptr, '5' },
+      { "fg-th",                required_argument, nullptr, '6' },
       { 0, 0, 0, 0 }
     };
 
     while ( true ) {
-      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:F:WB:R:3:4:", command_line_options, nullptr );
+      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:F:WB:R:3:4:5:6:", command_line_options, nullptr );
 
       if ( opt == -1 ) {
         break;
@@ -248,6 +253,14 @@ int main( int argc, char *argv[] )
 
       case '4':
         fg_qi = stoul(optarg);
+        break;
+
+      case '5':
+        bg_th = stoul(optarg);
+        break;
+
+      case '6':
+        fg_th = stoul(optarg);
         break;
 
       default:
@@ -367,6 +380,8 @@ int main( int argc, char *argv[] )
       if (quality == CV_QUALITY) {
         if (bg_qi) { encoder.set_bg_qi(*bg_qi); }
         if (fg_qi) { encoder.set_fg_qi(*fg_qi); }
+        if (bg_th) { encoder.set_bg_th(*bg_th); }
+        if (fg_th) { encoder.set_fg_th(*fg_th); }
       }
 
       if ( not input_state.empty() ) {

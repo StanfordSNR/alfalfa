@@ -603,12 +603,21 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster,
       if (*bg_qi_ == s.segment_quantizer_adjustments.at(i)) { bg_segid = i; }
       if (*fg_qi_ == s.segment_quantizer_adjustments.at(i)) { fg_segid = i; }
     }
+  } else if (bg_th_ and fg_th_) {
+    s.segment_quantizer_adjustments = {16, 16, 16, 16};
+    s.thresholds = {1000, 500, 100, 0};
+
+    for (unsigned i = 0; i < num_segments; i++) {
+      if (*bg_th_ == s.thresholds.at(i)) { bg_segid = i; }
+      if (*fg_th_ == s.thresholds.at(i)) { fg_segid = i; }
+    }
   }
 
   if (bg_segid >= num_segments or fg_segid >= num_segments) {
-    throw runtime_error("Invalid --bg or --fg");
+    throw runtime_error("Invalid --bg-qi/--fg-qi/--bg-th/--fg-th");
   }
 
+  /* correct segment_quantizer_adjustments if adjustments are relative */
   if (not s.absolute_segment_adjustments) {
     for (unsigned i = 0; i < num_segments; i++) {
       s.segment_quantizer_adjustments.at(i) -= quant_indices.y_ac_qi;

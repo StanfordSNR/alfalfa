@@ -171,6 +171,9 @@ private:
   Optional<uint8_t> bg_qi_ {};
   Optional<uint8_t> fg_qi_ {};
 
+  Optional<unsigned> bg_th_ {};
+  Optional<unsigned> fg_th_ {};
+
   /* this struct will hold stats about the latest encoded frame */
   struct EncodeStats
   {
@@ -422,6 +425,8 @@ public:
 
   void set_bg_qi(const uint8_t bg_qi) { bg_qi_ = bg_qi; }
   void set_fg_qi(const uint8_t fg_qi) { fg_qi_ = fg_qi; }
+  void set_bg_th(const unsigned bg_th) { bg_th_ = bg_th; }
+  void set_fg_th(const unsigned fg_th) { fg_th_ = fg_th; }
 };
 
 #endif /* ENCODER_HH */
