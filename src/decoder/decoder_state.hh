@@ -57,15 +57,20 @@ template
 void Segmentation::update<InterFrameHeader>(const InterFrameHeader & header);
 
 template <class HeaderType>
-void FilterAdjustments::update( const HeaderType & header ) {
-  assert( header.mode_lf_adjustments.initialized() );
+void FilterAdjustments::update( const HeaderType & header )
+{
+  if ( not header.mode_lf_adjustments.initialized() ) {
+    return;
+  }
+
+  if ( not header.mode_lf_adjustments.get().initialized() ) {
+    return;
+  }
 
   /* update additional in-loop deblocking filter adjustments */
-  if ( header.mode_lf_adjustments.get().initialized() ) {
-    for ( unsigned int i = 0; i < loopfilter_ref_adjustments.size(); i++ ) {
-      loopfilter_ref_adjustments.at( i ) = header.mode_lf_adjustments.get().get().ref_update.at( i ).get_or( 0 );
-      loopfilter_mode_adjustments.at( i ) = header.mode_lf_adjustments.get().get().mode_update.at( i ).get_or( 0 );
-    }
+  for ( unsigned int i = 0; i < loopfilter_ref_adjustments.size(); i++ ) {
+    loopfilter_ref_adjustments.at( i ) = header.mode_lf_adjustments.get().get().ref_update.at( i ).get_or( 0 );
+    loopfilter_mode_adjustments.at( i ) = header.mode_lf_adjustments.get().get().mode_update.at( i ).get_or( 0 );
   }
 }
 
