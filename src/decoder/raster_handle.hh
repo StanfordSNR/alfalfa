@@ -101,7 +101,7 @@ template<class RasterType>
 class VP8RasterHandle
 {
 private:
-  std::shared_ptr<const RasterType> raster_;
+  std::shared_ptr<RasterType> raster_;
 
 public:
   VP8RasterHandle( VP8MutableRasterHandle<RasterType> && mutable_raster );
@@ -109,6 +109,7 @@ public:
   operator const RasterType & () const { return *raster_; }
 
   const RasterType & get( void ) const { return *raster_; }
+  RasterType & get_mutable( void ) { return *raster_; }
 
   size_t hash( void ) const;
 

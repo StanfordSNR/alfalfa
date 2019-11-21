@@ -583,12 +583,12 @@ vector<uint8_t> Encoder::encode_with_quantizer( const VP8Raster & raster, const 
   }
 }
 
-Segmentation Encoder::create_segmentation(const VP8Raster & raster,
+Segmentation Encoder::create_segmentation(VP8Raster & raster,
                                           const QuantIndices & quant_indices,
                                           const string & bbox_path)
 {
-  unsigned width_in_mb = VP8Raster::macroblock_dimension(raster.display_width());
-  unsigned height_in_mb = VP8Raster::macroblock_dimension(raster.display_height());
+  const unsigned width_in_mb = VP8Raster::macroblock_dimension(raster.display_width());
+  const unsigned height_in_mb = VP8Raster::macroblock_dimension(raster.display_height());
 
   Segmentation s(width_in_mb, height_in_mb);
   s.absolute_segment_adjustments = false; /* relative adjustments */
@@ -615,7 +615,7 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster,
   }
 
   if (bg_segid >= num_segments or fg_segid >= num_segments) {
-    throw runtime_error("Invalid --bg-qi/--fg-qi/--bg-th/--fg-th");
+    throw runtime_error("Invalid segment IDs for background or foreground");
   }
 
   /* correct segment_quantizer_adjustments if adjustments are relative */
@@ -625,6 +625,7 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster,
     }
   }
 
+  vector<vector<bool>> foreground(width_in_mb, vector<bool>(height_in_mb));
   s.map.fill(bg_segid);
 
   if (not bbox_path.empty()) {
@@ -651,6 +652,18 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster,
       for (unsigned c = c_min; c <= c_max; c++) {
         for (unsigned r = r_min; r <= r_max; r++) {
           s.map.at(c, r) = fg_segid;
+          foreground[c][r] = true;
+        }
+      }
+    }
+
+    /* black out the background if black_bg_ is set */
+    if (black_bg_) {
+      for (unsigned c = 0; c < width_in_mb; c++) {
+        for (unsigned r = 0; r < height_in_mb; r++) {
+          if (not foreground[c][r]) {
+            raster.macroblock(c, r).black_out();
+          }
         }
       }
     }
@@ -661,7 +674,7 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster,
   return s;
 }
 
-vector<uint8_t> Encoder::encode_for_cv(const VP8Raster & raster, const string & bbox_path)
+vector<uint8_t> Encoder::encode_for_cv(VP8Raster & raster, const string & bbox_path)
 {
   if (encode_quality_ != CV_QUALITY) {
     throw runtime_error("encode quality must be CV_QUALITY");
