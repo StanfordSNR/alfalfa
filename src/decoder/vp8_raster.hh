@@ -244,6 +244,12 @@ public:
         }
       }
     }
+
+    void black_out() {
+      Y.mutable_contents().fill(0);
+      U.mutable_contents().fill(128);
+      V.mutable_contents().fill(128);
+    }
   };
 
   struct ConstMacroblock

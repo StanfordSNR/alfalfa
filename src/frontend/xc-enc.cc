@@ -74,6 +74,7 @@ void usage_error( const string & program_name )
        << " --fg-qi=<arg>                         Forground quantization index"              << endl
        << " --bg-th=<arg>                         Background residue threshold"              << endl
        << " --fg-th=<arg>                         Forground residue threshold"               << endl
+       << " --black-bg                            Black out background"                      << endl
        << " -F <arg>, --frame-sizes=<arg>         Target frame sizes file"                   << endl
        << "                                         Each line specifies the target size"     << endl
        << "                                         in bytes for the corresponding frame."   << endl
@@ -131,6 +132,7 @@ int main( int argc, char *argv[] )
     Optional<uint8_t> y_ac_qi;
     Optional<uint8_t> bg_qi, fg_qi;
     Optional<unsigned> bg_th, fg_th;
+    bool black_bg = false;
     EncoderQuality quality = BEST_QUALITY;
 
     EncoderMode encoder_mode = MINIMUM_SSIM;
@@ -158,11 +160,12 @@ int main( int argc, char *argv[] )
       { "fg-qi",                required_argument, nullptr, '4' },
       { "bg-th",                required_argument, nullptr, '5' },
       { "fg-th",                required_argument, nullptr, '6' },
+      { "black-bg",             no_argument,       nullptr, '1' },
       { 0, 0, 0, 0 }
     };
 
     while ( true ) {
-      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:F:WB:R:3:4:5:6:", command_line_options, nullptr );
+      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:F:WB:R:3:4:5:6:1", command_line_options, nullptr );
 
       if ( opt == -1 ) {
         break;
@@ -261,6 +264,10 @@ int main( int argc, char *argv[] )
 
       case '6':
         fg_th = stoul(optarg);
+        break;
+
+      case '1':
+        black_bg = true;
         break;
 
       default:
@@ -382,6 +389,7 @@ int main( int argc, char *argv[] )
         if (fg_qi) { encoder.set_fg_qi(*fg_qi); }
         if (bg_th) { encoder.set_bg_th(*bg_th); }
         if (fg_th) { encoder.set_fg_th(*fg_th); }
+        if (black_bg) { encoder.set_black_bg(); }
       }
 
       if ( not input_state.empty() ) {
@@ -428,14 +436,14 @@ int main( int argc, char *argv[] )
         case CV_MODE:
         {
           if (bbox_dir.empty()) {
-            output.append_frame(encoder.encode_for_cv(raster.get()));
+            output.append_frame(encoder.encode_for_cv(raster->get_mutable()));
           } else {
             fs::path bbox_path = fs::path(bbox_dir) / (to_string(frame_no) + ".csv");
             if (not fs::is_regular_file(bbox_path)) {
               throw runtime_error(bbox_path.string() + " does not exist");
             }
 
-            output.append_frame(encoder.encode_for_cv(raster.get(), bbox_path));
+            output.append_frame(encoder.encode_for_cv(raster->get_mutable(), bbox_path));
           }
 
           break;

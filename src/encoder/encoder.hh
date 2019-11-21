@@ -174,6 +174,8 @@ private:
   Optional<unsigned> bg_th_ {};
   Optional<unsigned> fg_th_ {};
 
+  bool black_bg_ { false };
+
   /* this struct will hold stats about the latest encoded frame */
   struct EncodeStats
   {
@@ -378,7 +380,7 @@ private:
 
   void update_rd_multipliers( const Quantizer & quantizer );
 
-  Segmentation create_segmentation(const VP8Raster & raster,
+  Segmentation create_segmentation(VP8Raster & raster,
                                    const QuantIndices & quant_indices,
                                    const std::string & bbox_path);
 
@@ -402,7 +404,7 @@ public:
   std::vector<uint8_t> encode_with_quantizer( const VP8Raster & raster,
                                               const uint8_t y_ac_qi );
 
-  std::vector<uint8_t> encode_for_cv(const VP8Raster & raster, const std::string & bbox_path = "");
+  std::vector<uint8_t> encode_for_cv(VP8Raster & raster, const std::string & bbox_path = "");
 
   /* Tries to encode the given raster with the best possible quality, without
    * exceeding the target size. */
@@ -427,6 +429,7 @@ public:
   void set_fg_qi(const uint8_t fg_qi) { fg_qi_ = fg_qi; }
   void set_bg_th(const unsigned bg_th) { bg_th_ = bg_th; }
   void set_fg_th(const unsigned fg_th) { fg_th_ = fg_th; }
+  void set_black_bg() { black_bg_ = true; }
 };
 
 #endif /* ENCODER_HH */
