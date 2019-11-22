@@ -36,7 +36,9 @@ using namespace std;
 template<>
 void Encoder::update_decoder_state( const KeyFrame & frame )
 {
-  // this is a keyframe! reset the decoder state
+  /* this is a keyframe! reset the decoder state.
+   * meanwhile, initialize segmentation and filter_adjustments in
+   * the decoder_state_ based on the frame header */
   decoder_state_ = DecoderState( frame.header(), width(), height() );
   references_ = References( width(), height() );
 
@@ -400,6 +402,9 @@ pair<KeyFrame &, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & ras
 {
   DecoderState decoder_state_copy = decoder_state_;
   decoder_state_ = DecoderState( width(), height() );
+
+  /* assign directly since parsing segmentation from frame_header is expensive and unnecessary */
+  decoder_state_.segmentation = segmentation;
 
   KeyFrame & frame = key_frame_;
   KeyFrameHeader & frame_header = frame.mutable_header();

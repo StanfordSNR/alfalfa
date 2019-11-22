@@ -158,16 +158,6 @@ void Encoder::update_decoder_state( const InterFrame & frame )
     decoder_state_.probability_tables.update( frame.header() );
   }
 
-  if ( frame.header().mode_lf_adjustments.initialized() ) {
-    if ( decoder_state_.filter_adjustments.initialized() ) {
-      decoder_state_.filter_adjustments.get().update( frame.header() );
-    } else {
-      decoder_state_.filter_adjustments.initialize( frame.header() );
-    }
-  } else {
-    decoder_state_.filter_adjustments.clear();
-  }
-
   /* update segmentation (except the segmentation map) */
   if (frame.header().update_segmentation) {
     if (decoder_state_.segmentation) {
@@ -183,6 +173,16 @@ void Encoder::update_decoder_state( const InterFrame & frame )
   /* update segmentation map in the decoder state */
   if (decoder_state_.segmentation) {
     frame.update_segmentation_map(decoder_state_.segmentation->map);
+  }
+
+  if ( frame.header().mode_lf_adjustments.initialized() ) {
+    if ( decoder_state_.filter_adjustments.initialized() ) {
+      decoder_state_.filter_adjustments.get().update( frame.header() );
+    } else {
+      decoder_state_.filter_adjustments.initialize( frame.header() );
+    }
+  } else {
+    decoder_state_.filter_adjustments.clear();
   }
 }
 
@@ -618,6 +618,9 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
                                                                const Optional<Segmentation> & segmentation )
 {
   DecoderState decoder_state_copy = decoder_state_;
+
+  /* assign directly since parsing segmentation from frame_header is expensive and unnecessary */
+  decoder_state_.segmentation = segmentation;
 
   InterFrame & frame = inter_frame_;
   InterFrameHeader & frame_header = frame.mutable_header();

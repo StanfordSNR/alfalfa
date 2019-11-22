@@ -243,7 +243,8 @@ DecoderState::DecoderState( const KeyFrameHeader & header,
                             const unsigned int s_width,
                             const unsigned int s_height )
   : width( s_width ), height( s_height ),
-    segmentation( header.update_segmentation.initialized(), header,
+    segmentation( header.update_segmentation.initialized(),
+                  header,
                   VP8Raster::macroblock_dimension( width ),
                   VP8Raster::macroblock_dimension( height ) ),
     filter_adjustments( header.mode_lf_adjustments.initialized(), header )

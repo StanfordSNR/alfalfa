@@ -576,6 +576,7 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster,
 
   Segmentation s(macroblock_width, macroblock_height);
   s.absolute_segment_adjustments = false; /* relative adjustments */
+  // s.segment_filter_adjustments = {1, 1, 1, 1};
 
   s.segment_quantizer_adjustments = {127, 64, 32, 0};
   if (not s.absolute_segment_adjustments) {
@@ -738,10 +739,11 @@ void Encoder::set_header_update_segmentation(FrameHeaderType & frame_header,
       SegmentFeatureData & seg_feature = *update_seg.segment_feature_data;
 
       seg_feature.segment_feature_mode = segmentation->absolute_segment_adjustments;
-      /* only touch quantizer parameters and leave loop filter values unchanged */
       for (unsigned i = 0; i < num_segments; i++) {
         seg_feature.quantizer_update.at(i) = Signed<7>(
           segmentation->segment_quantizer_adjustments.at(i));
+        seg_feature.loop_filter_update.at(i) = Signed<6>(
+          segmentation->segment_filter_adjustments.at(i));
       }
     }
 

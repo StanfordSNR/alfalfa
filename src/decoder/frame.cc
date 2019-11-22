@@ -151,44 +151,48 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const Optional< Segment
                                                          const Optional< FilterAdjustments > & filter_adjustments,
                                                          VP8Raster & raster ) const
 {
-  if ( header_.loop_filter_level ) {
-    /* calculate per-segment filter adjustments if
-       segmentation is enabled */
-
-    const FilterParameters frame_loopfilter( header_.filter_type,
-                                             header_.loop_filter_level,
-                                             header_.sharpness_level );
-
-    SafeArray< FilterParameters, num_segments > segment_loopfilters;
-
-    if ( segmentation.initialized() ) {
-      for ( uint8_t i = 0; i < num_segments; i++ ) {
-        FilterParameters segment_filter( header_.filter_type,
-                                         header_.loop_filter_level,
-                                         header_.sharpness_level );
-        segment_filter.filter_level = segmentation.get().segment_filter_adjustments.at( i )
-          + ( segmentation.get().absolute_segment_adjustments
-              ? 0
-              : segment_filter.filter_level );
-
-        segment_loopfilters.at( i ) = segment_filter;
-      }
-    }
-
-    /* the macroblock needs to know whether the mode- and reference-based
-       filter adjustments are enabled */
-
-    macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
-                                              const unsigned int column,
-                                              const unsigned int row )
-                                         {
-                                           VP8Raster::Macroblock output = raster.macroblock( column, row );
-                                           macroblock.loopfilter( filter_adjustments,
-                                                                  segmentation.initialized()
-                                                                  ? segment_loopfilters.at( macroblock.segment_id() )
-                                                                  : frame_loopfilter,
-                                                                  output ); } );
+  if ( header_.loop_filter_level == 0 ) {
+    /* skip loop filtering entirely;
+     * caution: per-segment filter adjustments and mode-based/reference-based
+     * adjustments will be skipped too */
+    return;
   }
+
+  const FilterParameters frame_loopfilter( header_.filter_type,
+                                           header_.loop_filter_level,
+                                           header_.sharpness_level );
+
+  /* calculate per-segment filter adjustments if
+     segmentation is enabled */
+  SafeArray< FilterParameters, num_segments > segment_loopfilters;
+
+  if ( segmentation.initialized() ) {
+    for ( uint8_t i = 0; i < num_segments; i++ ) {
+      FilterParameters segment_filter( header_.filter_type,
+                                       header_.loop_filter_level,
+                                       header_.sharpness_level );
+      segment_filter.filter_level = segmentation.get().segment_filter_adjustments.at( i )
+        + ( segmentation.get().absolute_segment_adjustments
+            ? 0
+            : segment_filter.filter_level );
+
+      segment_loopfilters.at( i ) = segment_filter;
+    }
+  }
+
+  /* the macroblock needs to know whether the mode- and reference-based
+     filter adjustments are enabled */
+
+  macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
+                                            const unsigned int column,
+                                            const unsigned int row )
+                                       {
+                                         VP8Raster::Macroblock output = raster.macroblock( column, row );
+                                         macroblock.loopfilter( filter_adjustments,
+                                                                segmentation.initialized()
+                                                                ? segment_loopfilters.at( macroblock.segment_id() )
+                                                                : frame_loopfilter,
+                                                                output ); } );
 }
 
 
