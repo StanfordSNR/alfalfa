@@ -698,7 +698,12 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
   optimize_prob_skip( frame );
   optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
-  apply_best_loopfilter_settings( raster, reconstructed_raster_handle.get(), frame );
+
+  if (encode_quality_ == CV_QUALITY) {
+    apply_cv_loopfilter(raster, reconstructed_raster_handle.get(), frame);
+  } else {
+    apply_best_loopfilter_settings( raster, reconstructed_raster_handle.get(), frame );
+  }
 
   RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
 

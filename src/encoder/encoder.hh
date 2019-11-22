@@ -301,6 +301,11 @@ private:
                                        FrameType & frame );
 
   template<class FrameType>
+  void apply_cv_loopfilter(const VP8Raster & original,
+                           VP8Raster & reconstructed,
+                           FrameType & frame);
+
+  template<class FrameType>
   void optimize_probability_tables( FrameType & frame, const TokenBranchCounts & token_branch_counts );
 
   template<class FrameHeaderType, class MacroblockType>

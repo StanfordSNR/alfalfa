@@ -509,6 +509,22 @@ void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
 }
 
 template<class FrameType>
+void Encoder::apply_cv_loopfilter(const VP8Raster & original,
+                                  VP8Raster & reconstructed,
+                                  FrameType & frame)
+{
+  /* skip loop filtering completely for now */
+  frame.mutable_header().loop_filter_level = 0;
+  decoder_state_.filter_adjustments.reset(frame.header());
+  frame.loopfilter(decoder_state_.segmentation,
+                   decoder_state_.filter_adjustments, reconstructed);
+
+  /* for backward compatibility, compute SSIM */
+  double ssim = reconstructed.quality(original);
+  encode_stats_.ssim.reset(ssim);
+}
+
+template<class FrameType>
 FrameType & Encoder::encode_with_quantizer_search( const VP8Raster & raster,
                                                    const double minimum_ssim )
 {

@@ -469,7 +469,11 @@ pair<KeyFrame &, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & ras
   frame.relink_y2_blocks();
 
   optimize_prob_skip( frame );
-  apply_best_loopfilter_settings( raster, reconstructed_raster_handle.get(), frame );
+  if (encode_quality_ == CV_QUALITY) {
+    apply_cv_loopfilter(raster, reconstructed_raster_handle.get(), frame);
+  } else {
+    apply_best_loopfilter_settings( raster, reconstructed_raster_handle.get(), frame );
+  }
 
   RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
 
