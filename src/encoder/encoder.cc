@@ -571,10 +571,10 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster,
                                           const QuantIndices & quant_indices,
                                           const string & bbox_path)
 {
-  unsigned macroblock_width = VP8Raster::macroblock_dimension(raster.display_width());
-  unsigned macroblock_height = VP8Raster::macroblock_dimension(raster.display_height());
+  unsigned width_in_mb = VP8Raster::macroblock_dimension(raster.display_width());
+  unsigned height_in_mb = VP8Raster::macroblock_dimension(raster.display_height());
 
-  Segmentation s(macroblock_width, macroblock_height);
+  Segmentation s(width_in_mb, height_in_mb);
   s.absolute_segment_adjustments = false; /* relative adjustments */
   // s.segment_filter_adjustments = {1, 1, 1, 1};
 
@@ -585,7 +585,6 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster,
     }
   }
 
-  s.segment_filter_adjustments = {0, 0, 0, 0};
   s.thresholds = {0, 0, 0, 0};
 
   if (not has_state_) {  /* encode with high quality on the first key frame */
@@ -594,27 +593,28 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster,
   }
 
   if (not bbox_path.empty()) {
+    int mb_side = VP8Raster::macroblock_side;
+    const int expand_mb = 1; /* expand margins of each bounding box by one macroblock */
+
     /* read bboxes from csv and set segmentation map */
     ifstream csv_stream(bbox_path);
     for (string line; getline(csv_stream, line);) {
       vector<string> items = split(line, ",");
 
+      /* CSV format: class name, confidence,
+       * left (inclusive), top (inclusive), right (exclusive), bottom (exclusive) */
       if (items.size() != 6) {
         throw runtime_error("invalid CSV file: " + bbox_path);
       }
 
-      unsigned c_min = max(stoi(items[2]) - 10, 0);
-      unsigned c_max = min(stoi(items[4]) + 10, (int)raster.display_width());
-      unsigned r_min = max(stoi(items[3]) - 10, 0);
-      unsigned r_max = min(stoi(items[5]) + 10, (int)raster.display_height());
+      /* convert pixel to macroblock index (inclusive) and expand */
+      unsigned c_min = max(0, stoi(items[2]) / mb_side - expand_mb);
+      unsigned r_min = max(0, stoi(items[3]) / mb_side - expand_mb);
+      unsigned c_max = min((int)width_in_mb - 1, (stoi(items[4]) - 1) / mb_side + expand_mb);
+      unsigned r_max = min((int)height_in_mb - 1, (stoi(items[5]) - 1) / mb_side + expand_mb);
 
-      c_min = VP8Raster::macroblock_dimension(c_min);
-      c_max = VP8Raster::macroblock_dimension(c_max);
-      r_min = VP8Raster::macroblock_dimension(r_min);
-      r_max = VP8Raster::macroblock_dimension(r_max);
-
-      for (unsigned c = c_min; c < c_max; c++) {
-        for (unsigned r = r_min; r < r_max; r++) {
+      for (unsigned c = c_min; c <= c_max; c++) {
+        for (unsigned r = r_min; r <= r_max; r++) {
           s.map.at(c, r) = 2;
         }
       }

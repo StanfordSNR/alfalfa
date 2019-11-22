@@ -293,6 +293,7 @@ public:
   }
 
   static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
+  static const unsigned int macroblock_side = 16;
 
   template <class lambda>
   void macroblocks_forall_ij( const lambda & f ) const
