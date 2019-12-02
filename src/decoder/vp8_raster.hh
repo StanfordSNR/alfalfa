@@ -250,6 +250,12 @@ public:
       U.mutable_contents().fill(128);
       V.mutable_contents().fill(128);
     }
+
+    void white_out() {
+      Y.mutable_contents().fill(255);
+      U.mutable_contents().fill(128);
+      V.mutable_contents().fill(128);
+    }
   };
 
   struct ConstMacroblock

@@ -11,7 +11,7 @@ endif
 bin_PROGRAMS = vp8decode xc-enc xc-ssim xc-dissect xc-framesize xc-dump \
                xc-diff comp-states xc-decode-bundle xc-merge \
                xc-terminate-chunk $(VP8PLAY_BUILD) \
-               xc-zero-out-residues
+               xc-zero-out-residues xc-visual
 
 vp8decode_SOURCES = vp8decode.cc
 vp8decode_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)
@@ -55,3 +55,10 @@ comp_states_LDADD = $(BASE_LDADD)
 
 xc_zero_out_residues_SOURCES = xc-zero-out-residues.cc
 xc_zero_out_residues_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)
+
+xc_visual_SOURCES = xc-visual.cc
+xc_visual_CPPFLAGS = $(AM_CPPFLAGS) $(GLU_CFLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS)
+xc_visual_LDADD = ../display/libalfalfadisplay.a $(BASE_LDADD) $(GLU_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS)
+# NOTE: Debian does not distribute static libs for libGLEW et al,
+# so we have to override AM_LDFLAGS and always dynamically link
+xc_visual_LDFLAGS =
