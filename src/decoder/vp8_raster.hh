@@ -246,13 +246,19 @@ public:
     }
 
     void black_out() {
-      Y.mutable_contents().fill(0);
+      Y.mutable_contents().fill(16);
       U.mutable_contents().fill(128);
       V.mutable_contents().fill(128);
     }
 
     void white_out() {
-      Y.mutable_contents().fill(255);
+      Y.mutable_contents().fill(235);
+      U.mutable_contents().fill(128);
+      V.mutable_contents().fill(128);
+    }
+
+    void gray_out() {
+      Y.mutable_contents().fill(128);
       U.mutable_contents().fill(128);
       V.mutable_contents().fill(128);
     }
