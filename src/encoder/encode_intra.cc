@@ -93,7 +93,8 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
                                                                  MacroblockType & frame_mb,
                                                                  const Quantizer & quantizer,
                                                                  const EncoderPass encoder_pass,
-                                                                 const bool interframe ) const
+                                                                 const bool interframe,
+                                                                 const unsigned residue_threhold ) const
 {
   MBPredictionData best_pred;
 
@@ -117,7 +118,6 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
     pred.prediction_mode = ( mbmode )prediction_mode;
 
     if ( prediction_mode == B_PRED ) {
-      pred.cost = 0;
       pred.rate = costs_.mbmode_costs.at( interframe ? 1 : 0 ).at( B_PRED );
       pred.distortion = 0;
 
@@ -150,9 +150,14 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
     else {
       reconstructed_mb.Y.intra_predict( ( mbmode )prediction_mode, predictors, prediction );
 
-      /* Here we compute variance, instead of SSE, because in this case
-       * the average will be taken out from Y2 block into the Y2 block. */
-      pred.distortion = variance( original_mb.Y, prediction );
+      if (residue_threhold != 0 and sse(original_mb.Y, prediction) < residue_threhold) {
+        pred.distortion = 0;
+        pred.skip_residue = true;
+      } else {
+        /* Here we compute variance, instead of SSE, because in this case
+         * the average will be taken out from Y2 block into the Y2 block. */
+        pred.distortion = variance(original_mb.Y, prediction);
+      }
 
       pred.rate = costs_.mbmode_costs.at( interframe ? 1 : 0 ).at( prediction_mode );
       pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
@@ -179,12 +184,12 @@ void Encoder::luma_mb_apply_intra_prediction( const VP8Raster::Macroblock & orig
                                               __attribute__((unused)) VP8Raster::Macroblock & temp_mb,
                                               MacroblockType & frame_mb,
                                               const Quantizer & quantizer,
-                                              const mbmode min_prediction_mode,
+                                              const mbmode best_pred_mode,
                                               const EncoderPass encoder_pass ) const
 {
-  frame_mb.Y2().set_prediction_mode( min_prediction_mode );
+  frame_mb.Y2().set_prediction_mode( best_pred_mode );
 
-  if ( min_prediction_mode == B_PRED ) {
+  if ( best_pred_mode == B_PRED ) {
     frame_mb.Y2().set_coded( false );
     return;
   }
@@ -195,7 +200,12 @@ void Encoder::luma_mb_apply_intra_prediction( const VP8Raster::Macroblock & orig
     [&] ( YBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
     {
       auto & original_sb = original_mb.Y_sub_at( sb_column, sb_row );
-      frame_sb.set_prediction_mode( KeyFrameMacroblock::implied_subblock_mode( min_prediction_mode ) );
+      frame_sb.set_prediction_mode( KeyFrameMacroblock::implied_subblock_mode( best_pred_mode ) );
+
+      if (frame_mb.skip_residue()) {
+        frame_sb.set_Y_after_Y2();
+        return;
+      }
 
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
         reconstructed_mb.Y_sub_at( sb_column, sb_row ).contents() );
@@ -216,6 +226,12 @@ void Encoder::luma_mb_apply_intra_prediction( const VP8Raster::Macroblock & orig
   );
 
   frame_mb.Y2().set_coded( true );
+
+  if (frame_mb.skip_residue()) {
+    frame_mb.zero_out();
+    return;
+  }
+
   frame_mb.Y2().mutable_coefficients().wht( walsh_input );
 
   if ( encoder_pass == FIRST_PASS ) {
@@ -235,27 +251,33 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
                                      VP8Raster::Macroblock & temp_mb,
                                      MacroblockType & frame_mb,
                                      const Quantizer & quantizer,
-                                     const EncoderPass encoder_pass ) const
+                                     const EncoderPass encoder_pass,
+                                     const unsigned residue_threhold ) const
 {
   // Select the best prediction mode
-  MBPredictionData best_pred = luma_mb_best_prediction_mode( original_mb,
-                                                             reconstructed_mb,
-                                                             temp_mb,
-                                                             frame_mb,
-                                                             quantizer,
-                                                             encoder_pass );
+  MBPredictionData best_pred = luma_mb_best_prediction_mode(
+                                 original_mb, reconstructed_mb, temp_mb, frame_mb,
+                                 quantizer, encoder_pass, false, residue_threhold );
+
+  if (best_pred.skip_residue) {
+    /* set skip_residue_ on frame_mb for chroma to know */
+    assert(best_pred.distortion == 0);
+    frame_mb.set_skip_residue(true);
+  }
+
   // Apply
-  luma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
-                                  frame_mb, quantizer,
-                                  best_pred.prediction_mode, encoder_pass );
+  luma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb, frame_mb,
+                                  quantizer, best_pred.prediction_mode, encoder_pass );
 }
 
 /*
  * Please take a look at comments for `luma_mb_best_prediction_mode`.
  */
+template <class MacroblockType>
 Encoder::MBPredictionData Encoder::chroma_mb_best_prediction_mode( const VP8Raster::Macroblock & original_mb,
                                                                    VP8Raster::Macroblock & reconstructed_mb,
                                                                    VP8Raster::Macroblock & temp_mb,
+                                                                   MacroblockType & frame_mb,
                                                                    const bool interframe ) const
 {
   MBPredictionData best_pred;
@@ -273,8 +295,14 @@ Encoder::MBPredictionData Encoder::chroma_mb_best_prediction_mode( const VP8Rast
     reconstructed_mb.U.intra_predict( ( mbmode )prediction_mode, u_predictors, u_prediction );
     reconstructed_mb.V.intra_predict( ( mbmode )prediction_mode, v_predictors, v_prediction );
 
-    pred.distortion = sse( original_mb.U, u_prediction )
-                    + sse( original_mb.V, v_prediction );
+    /* skip residue if residue is already skipped for luma */
+    if (frame_mb.skip_residue()) {
+      pred.distortion = 0;
+      pred.skip_residue = true;
+    } else {
+      pred.distortion = sse( original_mb.U, u_prediction )
+                      + sse( original_mb.V, v_prediction );
+    }
 
     pred.rate = costs_.intra_uv_mode_costs.at( interframe ).at( prediction_mode );
     pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
@@ -297,10 +325,15 @@ void Encoder::chroma_mb_apply_intra_prediction( const VP8Raster::Macroblock & or
                                                 __attribute__((unused)) VP8Raster::Macroblock & temp_mb,
                                                 MacroblockType & frame_mb,
                                                 const Quantizer & quantizer,
-                                                const mbmode min_prediction_mode,
+                                                const mbmode best_pred_mode,
                                                 const EncoderPass encoder_pass ) const
 {
-  frame_mb.U().at( 0, 0 ).set_prediction_mode( min_prediction_mode );
+  frame_mb.U().at( 0, 0 ).set_prediction_mode( best_pred_mode );
+
+  if (frame_mb.skip_residue()) {
+    frame_mb.zero_out();
+    return;
+  }
 
   frame_mb.U().forall_ij(
     [&] ( UVBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
@@ -351,15 +384,13 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
                                        const bool interframe ) const
 {
   // Select the best prediction mode
-  MBPredictionData best_pred = chroma_mb_best_prediction_mode( original_mb,
-                                                               reconstructed_mb,
-                                                               temp_mb,
-                                                               interframe );
+  MBPredictionData best_pred = chroma_mb_best_prediction_mode(
+                                 original_mb, reconstructed_mb, temp_mb,
+                                 frame_mb, interframe );
 
   // Apply
-  chroma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
-                                    frame_mb, quantizer,
-                                    best_pred.prediction_mode, encoder_pass );
+  chroma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb, frame_mb,
+                                    quantizer, best_pred.prediction_mode, encoder_pass );
 }
 
 /* This function outputs the prediction values to 'reconstructed_sb'
@@ -448,11 +479,14 @@ pair<KeyFrame &, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & ras
         /* select quantizer based on segment id */
         const auto & quantizer = quantizers.get_quantizer(segment_id);
 
+        frame_mb.set_skip_residue(false);
+        const unsigned residue_threshold = segmentation ? segmentation->thresholds.at(segment_id) : 0;
+
         update_rd_multipliers(quantizer);
 
         // Process Y and Y2
         luma_mb_intra_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,
-                               frame_mb, quantizer, (EncoderPass)pass );
+                               frame_mb, quantizer, (EncoderPass)pass, residue_threshold );
         chroma_mb_intra_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,
                                  frame_mb, quantizer, (EncoderPass)pass );
 

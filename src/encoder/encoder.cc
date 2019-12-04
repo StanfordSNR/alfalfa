@@ -595,6 +595,7 @@ Segmentation Encoder::create_segmentation(VP8Raster & raster,
   // s.segment_filter_adjustments = {0, 0, 0, 0};
 
   uint8_t bg_segid = num_segments, fg_segid = num_segments;
+
   if (bg_qi_ and fg_qi_) {
     s.segment_quantizer_adjustments = {127, 64, 32, 16};
     s.thresholds = {0, 0, 0, 0};
