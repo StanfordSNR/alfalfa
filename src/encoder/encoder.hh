@@ -119,6 +119,8 @@ private:
     uint32_t rate       { std::numeric_limits<uint32_t>::max() };
     uint32_t distortion { std::numeric_limits<uint32_t>::max() };
     uint32_t cost       { std::numeric_limits<uint32_t>::max() };
+
+    bool skip_residue { false };
   };
 
   struct MVSearchResult
@@ -220,9 +222,8 @@ private:
                                        VP8Raster::Macroblock & reconstructed_mb,
                                        InterFrameMacroblock & frame_mb,
                                        const Quantizer & quantizer,
-                                       const mbmode best_pred,
-                                       const MotionVector best_mv,
-                                       const unsigned residue_threhold = 0 );
+                                       const mbmode best_pred_mode,
+                                       const MotionVector best_mv );
 
   void chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                 VP8Raster::Macroblock & constructed_mb,
@@ -238,7 +239,8 @@ private:
                                                  MacroblockType & frame_mb,
                                                  const Quantizer & quantizer,
                                                  const EncoderPass encoder_pass = FIRST_PASS,
-                                                 const bool interframe = false ) const;
+                                                 const bool interframe = false,
+                                                 const unsigned residue_threhold = 0 ) const;
 
   template<class MacroblockType>
   void luma_mb_apply_intra_prediction( const VP8Raster::Macroblock & original_mb,
@@ -246,7 +248,7 @@ private:
                                        VP8Raster::Macroblock & temp_mb,
                                        MacroblockType & frame_mb,
                                        const Quantizer & quantizer,
-                                       const mbmode min_prediction_mode,
+                                       const mbmode best_pred_mode,
                                        const EncoderPass encoder_pass = FIRST_PASS ) const;
 
   template<class MacroblockType>
@@ -255,11 +257,14 @@ private:
                               VP8Raster::Macroblock & temp_mb,
                               MacroblockType & frame_mb,
                               const Quantizer & quantizer,
-                              const EncoderPass encoder_pass = FIRST_PASS ) const;
+                              const EncoderPass encoder_pass = FIRST_PASS,
+                              const unsigned residue_threhold = 0 ) const;
 
+  template<class MacroblockType>
   MBPredictionData chroma_mb_best_prediction_mode( const VP8Raster::Macroblock & original_mb,
                                                    VP8Raster::Macroblock & reconstructed_mb,
                                                    VP8Raster::Macroblock & temp_mb,
+                                                   MacroblockType & frame_mb,
                                                    const bool interframe = false ) const;
 
   template<class MacroblockType>
@@ -268,7 +273,7 @@ private:
                                          __attribute__((unused)) VP8Raster::Macroblock & temp_mb,
                                          MacroblockType & frame_mb,
                                          const Quantizer & quantizer,
-                                         const mbmode min_prediction_mode,
+                                         const mbmode best_pred_mode,
                                          const EncoderPass encoder_pass ) const;
 
 
