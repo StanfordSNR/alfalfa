@@ -280,7 +280,7 @@ Encoder::MBPredictionData Encoder::chroma_mb_best_prediction_mode( const VP8Rast
     pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
                         DISTORTION_MULTIPLIER );
 
-    if ( pred.distortion < best_pred.distortion ) {
+    if ( pred.cost < best_pred.cost ) {
       reconstructed_mb.U.mutable_contents().copy_from( u_prediction );
       reconstructed_mb.V.mutable_contents().copy_from( v_prediction );
 
