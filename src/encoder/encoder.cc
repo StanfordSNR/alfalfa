@@ -628,7 +628,7 @@ Segmentation Encoder::create_segmentation(const VP8Raster & raster,
   s.map.fill(bg_segid);
 
   if (not bbox_path.empty()) {
-    int mb_side = VP8Raster::macroblock_side;
+    const int mb_side = VP8Raster::macroblock_side;
     const int expand_mb = 1; /* expand margins of each bounding box by one macroblock */
 
     /* read bboxes from csv and set segmentation map */
