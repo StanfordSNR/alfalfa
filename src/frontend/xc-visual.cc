@@ -42,6 +42,7 @@
 #include "frame.hh"
 #include "decoder.hh"
 #include "ivf.hh"
+#include "encoder.hh"
 
 using namespace std;
 using namespace cv;
@@ -51,7 +52,7 @@ unsigned width, height, width_in_mb, height_in_mb;
 void usage_error(const string & program_name)
 {
   cerr <<
-  "Usage: " << program_name << " <input> <output>"
+  "Usage: " << program_name << " <input>"
   << endl;
 }
 
@@ -67,11 +68,9 @@ static array<string, 14> bmode_names =
 static array<string, 4> reference_frame_names =
   { "CURRENT_FRAME", "LAST_FRAME", "GOLDEN_FRAME", "ALTREF_FRAME" };
 
-template<class FrameType>
-void write_frame(const VideoWriter & /* video_writer */,
-                 const VP8Raster & raster,
-                 const FrameType & /* frame */)
+Mat convert_yuv_to_bgr(const VP8Raster & raster)
 {
+  /* create a YUV Mat from raster */
   const auto & Y = raster.Y();
   const auto & U = raster.U();
   const auto & V = raster.V();
@@ -101,10 +100,78 @@ void write_frame(const VideoWriter & /* video_writer */,
 
   Mat yuv(Y.height() + U.height(), Y.width(), CV_8UC1, buf_src.data());
 
+  /* convert YUV to BGR */
   Mat bgr;
   cvtColor(yuv, bgr, COLOR_YUV2BGR_I420);
 
-  imshow("BGR", bgr);
+  return bgr;
+}
+
+template<class FrameHeaderType, class MacroblockType>
+void decode_and_visualize(Decoder & decoder,
+                          const Frame<FrameHeaderType, MacroblockType> & frame)
+{
+  /* save the reference raster before decode_frame */
+  const VP8Raster & reference = decoder.get_references().at(LAST_FRAME);
+
+  /* decode the current raster */
+  auto output = decoder.decode_frame(frame);
+  if (not output.first) {
+    return;
+  }
+  const VP8Raster & raster = output.second;
+  VP8Raster temp_raster(raster.width(), raster.height());
+
+  /* convert the current raster to OpenCV Mat (YUV to BGR) */
+  Mat bgr = convert_yuv_to_bgr(raster);
+
+  uint64_t residue_sum = 0;
+  int64_t mv_x_sum = 0, mv_y_sum = 0;
+
+  /* overlay frame stats (motion vectors, residues) on Mat */
+  frame.macroblocks().forall_ij(
+    [&](MacroblockType & macroblock, unsigned int mb_col, unsigned int mb_row)
+    {
+      int curr_col = mb_col * 16;
+      int curr_row = mb_row * 16;
+
+      if (not macroblock.inter_coded()) {
+        circle(bgr, Point(curr_col, curr_row), 1, Scalar(0, 0, 0));
+        return;
+      }
+
+      if (macroblock.header().reference() != LAST_FRAME) {
+        throw runtime_error("Only supports visualizing reference frame == LAST_FRAME");
+      }
+
+      /* draw motion vector */
+      const auto & mv = macroblock.base_motion_vector();
+
+      mv_x_sum += mv.x();
+      mv_y_sum += mv.y();
+
+      int prev_col = curr_col + (mv.x() >> 3);
+      int prev_row = curr_row + (mv.y() >> 3);
+
+      arrowedLine(bgr, Point(prev_col, prev_row), Point(curr_col, curr_row),
+                  Scalar(255, 255, 255));
+
+      /* draw residue */
+      auto temp_mb = temp_raster.macroblock(mb_col, mb_row);
+      TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
+
+      const auto & original_mb = raster.macroblock(mb_col, mb_row);
+      original_mb.Y().inter_predict(mv, reference.Y(), prediction);
+
+      residue_sum += Encoder::sse(original_mb.Y(), prediction);
+    }
+  );
+
+  cerr << "Sum of motion vectors = " << mv_x_sum << " " << mv_y_sum << endl;
+  cerr << "Sum of residues = " << residue_sum << endl;
+
+  /* display Mat */
+  imshow("xc-visual", bgr);
   waitKey(0);
 }
 
@@ -114,7 +181,7 @@ int main(int argc, char * argv[])
     abort();
   }
 
-  if (argc != 3) {
+  if (argc != 2) {
     usage_error(argv[0]);
     return EXIT_FAILURE;
   }
@@ -128,11 +195,6 @@ int main(int argc, char * argv[])
   width_in_mb = VP8Raster::macroblock_dimension(width);
   height_in_mb = VP8Raster::macroblock_dimension(height);
 
-  /* create a video writer for the output video */
-  string output_video = argv[2];
-  VideoWriter video_writer(output_video, VideoWriter::fourcc('M', 'J', 'P', 'G'),
-                           1, Size(width, height), true);
-
   Decoder decoder(width, height);
 
   for (unsigned frame_id = 0; frame_id < ivf.frame_count(); frame_id++) {
@@ -140,18 +202,10 @@ int main(int argc, char * argv[])
 
     if (decompressed_frame.key_frame()) {
       KeyFrame frame = decoder.parse_frame<KeyFrame>(decompressed_frame);
-
-      auto output = decoder.decode_frame(frame);
-      if (output.first) {
-        write_frame(video_writer, output.second.get(), frame);
-      }
+      decode_and_visualize(decoder, frame);
     } else {
       InterFrame frame = decoder.parse_frame<InterFrame>(decompressed_frame);
-
-      auto output = decoder.decode_frame(frame);
-      if (output.first) {
-        write_frame(video_writer, output.second.get(), frame);
-      }
+      decode_and_visualize(decoder, frame);
     }
   }
 

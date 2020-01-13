@@ -188,18 +188,6 @@ private:
                           uint32_t rate_multiplier,
                           uint32_t distortion_multiplier );
 
-  template<unsigned int size>
-  static uint32_t sad( const VP8Raster::Block<size> & block,
-                       const TwoDSubRange<uint8_t, size, size> & prediction );
-
-  template<unsigned int size>
-  static uint32_t sse( const VP8Raster::Block<size> & block,
-                       const TwoDSubRange<uint8_t, size, size> & prediction );
-
-  template<unsigned int size>
-  static uint32_t variance( const VP8Raster::Block<size> & block,
-                            const TwoDSubRange<uint8_t, size, size> & prediction );
-
   MVSearchResult diamond_search( const VP8Raster::Macroblock & original_mb,
                                  VP8Raster::Macroblock & temp_mb,
                                  InterFrameMacroblock & frame_mb,
@@ -435,6 +423,18 @@ public:
   void set_bg_th(const unsigned bg_th) { bg_th_ = bg_th; }
   void set_fg_th(const unsigned fg_th) { fg_th_ = fg_th; }
   void set_black_bg() { black_bg_ = true; }
+
+  template<unsigned int size>
+  static uint32_t sad( const VP8Raster::Block<size> & block,
+                       const TwoDSubRange<uint8_t, size, size> & prediction );
+
+  template<unsigned int size>
+  static uint32_t sse( const VP8Raster::Block<size> & block,
+                       const TwoDSubRange<uint8_t, size, size> & prediction );
+
+  template<unsigned int size>
+  static uint32_t variance( const VP8Raster::Block<size> & block,
+                            const TwoDSubRange<uint8_t, size, size> & prediction );
 };
 
 #endif /* ENCODER_HH */
