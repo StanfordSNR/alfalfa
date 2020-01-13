@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I$(srcdir)/../util -I$(srcdir)/../decoder -I$(srcdir)/../display -I$(srcdir)/../input -I$(srcdir)/../encoder -I$(srcdir)/../net $(X264_CFLAGS) $(CXX11_FLAGS)
+AM_CPPFLAGS = -I$(srcdir)/../util -I$(srcdir)/../decoder -I$(srcdir)/../display -I$(srcdir)/../input -I$(srcdir)/../encoder -I$(srcdir)/../net -isystem/usr/local/include/opencv4/opencv -isystem/usr/local/include/opencv4 $(X264_CFLAGS) $(CXX11_FLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 AM_LDFLAGS = $(STATIC_BUILD_FLAG)
 BASE_LDADD = ../input/libalfalfainput.a ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a $(X264_LIBS)
@@ -57,8 +57,4 @@ xc_zero_out_residues_SOURCES = xc-zero-out-residues.cc
 xc_zero_out_residues_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)
 
 xc_visual_SOURCES = xc-visual.cc
-xc_visual_CPPFLAGS = $(AM_CPPFLAGS) $(GLU_CFLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS)
-xc_visual_LDADD = ../display/libalfalfadisplay.a $(BASE_LDADD) $(GLU_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS)
-# NOTE: Debian does not distribute static libs for libGLEW et al,
-# so we have to override AM_LDFLAGS and always dynamically link
-xc_visual_LDFLAGS =
+xc_visual_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD) $(OPENCV_LIBS)

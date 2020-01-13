@@ -33,21 +33,25 @@
 #include <array>
 #include <optional>
 
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/videoio.hpp>
+
 #include "frame.hh"
 #include "decoder.hh"
 #include "ivf.hh"
-#include "display.hh"
 
 using namespace std;
+using namespace cv;
 
 unsigned width, height, width_in_mb, height_in_mb;
 
 void usage_error(const string & program_name)
 {
   cerr <<
-  "Usage: " << program_name << " [options] <ivf>\n\n"
-  "Options:\n"
-  "-f, --frame <arg>              Print information for frame #<arg>"
+  "Usage: " << program_name << " <input> <output>"
   << endl;
 }
 
@@ -64,55 +68,44 @@ static array<string, 4> reference_frame_names =
   { "CURRENT_FRAME", "LAST_FRAME", "GOLDEN_FRAME", "ALTREF_FRAME" };
 
 template<class FrameType>
-void display_mb(VideoDisplay & display,
-                VP8Raster & raster,
-                FrameType & frame,
-                const unsigned mb_col,
-                const unsigned mb_row)
+void write_frame(const VideoWriter & /* video_writer */,
+                 const VP8Raster & raster,
+                 const FrameType & /* frame */)
 {
-  for (unsigned c = 0; c < width_in_mb; c++) {
-    for (unsigned r = 0; r < height_in_mb; r++) {
-      if (not (c / 4 == mb_col and r / 4 == mb_row)) {
-        raster.macroblock(c, r).white_out();
-      }
+  const auto & Y = raster.Y();
+  const auto & U = raster.U();
+  const auto & V = raster.V();
+
+  vector<char> buf_src(Y.height() * Y.width()
+                       + U.height() * U.width()
+                       + V.height() * V.width());
+  unsigned i = 0;
+
+  for (unsigned r = 0; r < Y.height(); r++) {
+    for (unsigned c = 0; c < Y.width(); c++) {
+      buf_src[i++] = Y.at(c, r);
     }
   }
 
-  frame.macroblocks().forall_ij(
-    [&](auto & mb, unsigned int c, unsigned int r)
-    {
-      if (not (c / 4 == mb_col and r / 4 == mb_row)) {
-        return;
-      }
-
-      cout << "Macroblock [" << c << ", " << r << "]" << endl;
-      cout << "Prediction Mode: " << mbmode_names[mb.y_prediction_mode()] << endl;
-
-      if (mb.inter_coded()) {
-        // cout << "Base Motion Vector: (" << mb.base_motion_vector().x()
-        //      << ", " << mb.base_motion_vector().y() << ")" << endl;
-        // cout << "Reference: " << reference_frame_names[mb.header().reference()] << endl;
-      }
-      cout << endl;
-    });
-
-  display.draw(raster);
-  getchar();
-}
-
-template<class FrameType>
-void display_frame(VideoDisplay & display,
-                   const VP8Raster & raster,
-                   const FrameType & frame)
-{
-  for (unsigned c = 0; c < width_in_mb / 4; c++) {
-    for (unsigned r = 0; r < height_in_mb / 4; r++) {
-      VP8Raster raster_copy(width, height);
-      raster_copy.copy_from(raster);
-
-      display_mb(display, raster_copy, frame, c, r);
+  for (unsigned r = 0; r < U.height(); r++) {
+    for (unsigned c = 0; c < U.width(); c++) {
+      buf_src[i++] = U.at(c, r);
     }
   }
+
+  for (unsigned r = 0; r < V.height(); r++) {
+    for (unsigned c = 0; c < V.width(); c++) {
+      buf_src[i++] = V.at(c, r);
+    }
+  }
+
+  Mat yuv(Y.height() + U.height(), Y.width(), CV_8UC1, buf_src.data());
+
+  Mat bgr;
+  cvtColor(yuv, bgr, COLOR_YUV2BGR_I420);
+
+  imshow("BGR", bgr);
+  waitKey(0);
 }
 
 int main(int argc, char * argv[])
@@ -121,38 +114,13 @@ int main(int argc, char * argv[])
     abort();
   }
 
-  const option cmd_line_opts[] = {
-    {"frame",  required_argument, nullptr, 'f'},
-    { nullptr, 0,                 nullptr,  0 }
-  };
-
-  unsigned target_frame_number = UINT_MAX;
-
-  while (true) {
-    const int opt = getopt_long(argc, argv, "f:", cmd_line_opts, nullptr);
-    if (opt == -1) {
-      break;
-    }
-
-    switch (opt) {
-    case 'f':
-      target_frame_number = stoul(optarg);
-      break;
-
-    default:
-      usage_error(argv[0]);
-      return EXIT_FAILURE;
-    }
-  }
-
-  if (optind != argc - 1) {
+  if (argc != 3) {
     usage_error(argv[0]);
     return EXIT_FAILURE;
   }
 
-  string video_file = argv[optind];
-
-  const IVF ivf(video_file);
+  string input_video = argv[1];
+  const IVF ivf(input_video);
 
   width = ivf.width();
   height = ivf.height();
@@ -160,27 +128,29 @@ int main(int argc, char * argv[])
   width_in_mb = VP8Raster::macroblock_dimension(width);
   height_in_mb = VP8Raster::macroblock_dimension(height);
 
+  /* create a video writer for the output video */
+  string output_video = argv[2];
+  VideoWriter video_writer(output_video, VideoWriter::fourcc('M', 'J', 'P', 'G'),
+                           1, Size(width, height), true);
+
   Decoder decoder(width, height);
-  VideoDisplay display(decoder.example_raster());
 
   for (unsigned frame_id = 0; frame_id < ivf.frame_count(); frame_id++) {
-    if (frame_id > target_frame_number) {
-      break;
-    }
-
     UncompressedChunk decompressed_frame = decoder.decompress_frame(ivf.frame(frame_id));
 
     if (decompressed_frame.key_frame()) {
       KeyFrame frame = decoder.parse_frame<KeyFrame>(decompressed_frame);
+
       auto output = decoder.decode_frame(frame);
-      if (frame_id == target_frame_number and output.first) {
-        display_frame(display, output.second.get(), frame);
+      if (output.first) {
+        write_frame(video_writer, output.second.get(), frame);
       }
     } else {
       InterFrame frame = decoder.parse_frame<InterFrame>(decompressed_frame);
+
       auto output = decoder.decode_frame(frame);
-      if (frame_id == target_frame_number and output.first) {
-        display_frame(display, output.second.get(), frame);
+      if (output.first) {
+        write_frame(video_writer, output.second.get(), frame);
       }
     }
   }

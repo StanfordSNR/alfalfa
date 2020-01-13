@@ -104,6 +104,7 @@ AC_SUBST([ASFLAGS])
 PKG_CHECK_MODULES([X264], [x264])
 PKG_CHECK_MODULES([ZLIB], [zlib])
 AC_SEARCH_LIBS([jpeg_CreateDecompress], [jpeg], , [AC_MSG_ERROR([Unable to find libjpeg.])])
+PKG_CHECK_MODULES([OPENCV], [opencv4])
 
 if test "$buildvp8" = true; then
     PKG_CHECK_MODULES([GL], [gl])
