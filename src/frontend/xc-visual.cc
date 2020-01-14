@@ -32,6 +32,8 @@
 #include <string>
 #include <array>
 #include <optional>
+#include <sstream>
+#include <iomanip>
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -55,18 +57,6 @@ void usage_error(const string & program_name)
   "Usage: " << program_name << " <input>"
   << endl;
 }
-
-static array<string, 10> mbmode_names =
-  { "DC_PRED", "V_PRED", "H_PRED", "TM_PRED", "B_PRED",
-    "NEARESTMV", "NEARMV", "ZEROMV", "NEWMV", "SPLITMV" };
-
-static array<string, 14> bmode_names =
-  { "B_DC_PRED", "B_TM_PRED", "B_VE_PRED", "B_HE_PRED", "B_LD_PRED",
-    "B_RD_PRED", "B_VR_PRED", "B_VL_PRED", "B_HD_PRED", "B_HU_PRED",
-    "LEFT4X4", "ABOVE4X4", "ZERO4X4", "NEW4X4" };
-
-static array<string, 4> reference_frame_names =
-  { "CURRENT_FRAME", "LAST_FRAME", "GOLDEN_FRAME", "ALTREF_FRAME" };
 
 Mat convert_yuv_to_bgr(const VP8Raster & raster)
 {
@@ -107,6 +97,22 @@ Mat convert_yuv_to_bgr(const VP8Raster & raster)
   return bgr;
 }
 
+double mse(const Mat & m1, const Mat & m2)
+{
+  Mat m = m1 - m2;
+  m = m.mul(m);
+  Scalar s = sum(m);
+  double sse = s.val[0] + s.val[1] + s.val[2];
+  return sse / (m1.channels() * m1.total());
+}
+
+string fixed_precision(double num)
+{
+  std::stringstream stream;
+  stream << fixed << setprecision(2) << num;
+  return stream.str();
+}
+
 template<class FrameHeaderType, class MacroblockType>
 void decode_and_visualize(Decoder & decoder,
                           const Frame<FrameHeaderType, MacroblockType> & frame)
@@ -120,13 +126,12 @@ void decode_and_visualize(Decoder & decoder,
     return;
   }
   const VP8Raster & raster = output.second;
-  VP8Raster temp_raster(raster.width(), raster.height());
+  VP8Raster temp_raster(width, height);
 
   /* convert the current raster to OpenCV Mat (YUV to BGR) */
   Mat bgr = convert_yuv_to_bgr(raster);
 
-  uint64_t residue_sum = 0;
-  int64_t mv_x_sum = 0, mv_y_sum = 0;
+  vector<vector<uint32_t>> residue(height_in_mb, vector<uint32_t>(width_in_mb));
 
   /* overlay frame stats (motion vectors, residues) on Mat */
   frame.macroblocks().forall_ij(
@@ -147,28 +152,39 @@ void decode_and_visualize(Decoder & decoder,
       /* draw motion vector */
       const auto & mv = macroblock.base_motion_vector();
 
-      mv_x_sum += mv.x();
-      mv_y_sum += mv.y();
-
       int prev_col = curr_col + (mv.x() >> 3);
       int prev_row = curr_row + (mv.y() >> 3);
 
       arrowedLine(bgr, Point(prev_col, prev_row), Point(curr_col, curr_row),
                   Scalar(255, 255, 255));
 
-      /* draw residue */
+      /* record residue */
       auto temp_mb = temp_raster.macroblock(mb_col, mb_row);
       TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
 
       const auto & original_mb = raster.macroblock(mb_col, mb_row);
       original_mb.Y().inter_predict(mv, reference.Y(), prediction);
 
-      residue_sum += Encoder::sse(original_mb.Y(), prediction);
+      residue[mb_row][mb_col] = Encoder::sse(original_mb.Y(), prediction);
     }
   );
 
-  cerr << "Sum of motion vectors = " << mv_x_sum << " " << mv_y_sum << endl;
-  cerr << "Sum of residues = " << residue_sum << endl;
+  unsigned stride = 8;
+  for (unsigned r = 0; r + stride < height_in_mb; r += stride) {
+    for (unsigned c = 0; c + stride < width_in_mb; c += stride) {
+      uint64_t residue_sum = 0;
+      for (unsigned i = r; i < r + stride; i++) {
+        for (unsigned j = c; j < c + stride; j++) {
+          residue_sum += residue[i][j];
+        }
+      }
+      double residue_mean = (double) residue_sum / (16 * 16 * stride * stride);
+
+      putText(bgr, fixed_precision(residue_mean),
+              Point(c * 16 + 16, r * 16 + 16), FONT_HERSHEY_COMPLEX_SMALL,
+              1.0, Scalar(0, 255, 0));
+    }
+  }
 
   /* display Mat */
   imshow("xc-visual", bgr);
