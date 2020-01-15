@@ -350,14 +350,18 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
       pred.distortion = 0;
       pred.skip_residue = true;
     } else {
-      pred.distortion = variance( original_mb.Y, prediction );
+      pred.distortion = sse( original_mb.Y, prediction );
     }
 
+    pred.rate = 0;
+
+    /*
     pred.rate = costs_.mbmode_costs.at( 1 ).at( prediction_mode );
 
     if ( prediction_mode == NEWMV ) {
       pred.rate += costs_.motion_vector_cost( mv - best_ref, 96 );
     }
+    */
 
     /* chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb,
                              quantizer, encoder_pass );
