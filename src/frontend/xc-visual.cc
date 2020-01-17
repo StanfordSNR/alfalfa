@@ -117,6 +117,11 @@ string fixed_precision(double num)
 static double prev_residue_mean = 0;
 static double prev_pixel_mse = 0;
 
+void smooth_mv(vector<vector<pair<int, int>>> & mv)
+{
+  (void) mv;
+}
+
 template<class FrameHeaderType, class MacroblockType>
 void decode_and_visualize(Decoder & decoder,
                           const Frame<FrameHeaderType, MacroblockType> & frame)
@@ -137,15 +142,14 @@ void decode_and_visualize(Decoder & decoder,
   Mat mv_mat = curr_mat.clone();
   Mat residue_mat = curr_mat.clone();
 
+  vector<vector<pair<int, int>>> mv(height_in_mb, vector<pair<int, int>>(width_in_mb));
   vector<vector<uint32_t>> residue(height_in_mb, vector<uint32_t>(width_in_mb));
 
-  /* overlay frame stats (motion vectors, residues) on Mat */
+  /* record motion vectors and residues */
   frame.macroblocks().forall_ij(
     [&](MacroblockType & macroblock, unsigned int mb_col, unsigned int mb_row)
     {
-      int curr_col = mb_col * 16;
-      int curr_row = mb_row * 16;
-
+      /* skip key frame for now */
       if (not macroblock.inter_coded()) {
         return;
       }
@@ -154,26 +158,39 @@ void decode_and_visualize(Decoder & decoder,
         throw runtime_error("Only supports visualizing reference frame == LAST_FRAME");
       }
 
-      /* draw motion vector */
-      const auto & mv = macroblock.base_motion_vector();
-
-      int prev_col = curr_col + (mv.x() >> 3);
-      int prev_row = curr_row + (mv.y() >> 3);
-
-      arrowedLine(mv_mat, Point(prev_col, prev_row), Point(curr_col, curr_row),
-                  Scalar(255, 255, 255));
+      /* record motion vector */
+      const auto & curr_mv = macroblock.base_motion_vector();
+      mv[mb_row][mb_col] = {curr_mv.x() >> 3, curr_mv.y() >> 3};
 
       /* record residue */
       auto temp_mb = temp_raster.macroblock(mb_col, mb_row);
       TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
 
       const auto & original_mb = raster.macroblock(mb_col, mb_row);
-      original_mb.Y().inter_predict(mv, reference.Y(), prediction);
+      original_mb.Y().inter_predict(curr_mv, reference.Y(), prediction);
 
       residue[mb_row][mb_col] = Encoder::sse(original_mb.Y(), prediction);
     }
   );
 
+  /* smooth motion vectors */
+  smooth_mv(mv);
+
+  /* draw motion vectors */
+  for (unsigned r = 0; r < height_in_mb; r++) {
+    for (unsigned c = 0; c < width_in_mb; c++) {
+      int curr_row = r * 16;
+      int curr_col = c * 16;
+      int prev_row = curr_row + mv[r][c].second;
+      int prev_col = curr_col + mv[r][c].first;
+
+      arrowedLine(mv_mat, Point(prev_col, prev_row), Point(curr_col, curr_row),
+                  Scalar(255, 255, 255));
+    }
+  }
+  imwrite(to_string(img_id) + "-mv.jpg", mv_mat);
+
+  /* average residues and draw */
   uint64_t frame_residue_sum = 0;
   unsigned stride = 8;
   for (unsigned r = 0; r + stride < height_in_mb; r += stride) {
@@ -199,6 +216,7 @@ void decode_and_visualize(Decoder & decoder,
   putText(residue_mat, text, Point(10, 50), FONT_HERSHEY_COMPLEX_SMALL,
           1.5, Scalar(255, 255, 255));
 
+  /* calculate pixel-wise MSE and draw */
   double frame_pixel_mse = 0;
   if (not frame.header().key_frame()) {
     frame_pixel_mse = mse(curr_mat, convert_yuv_to_bgr(reference));
@@ -210,7 +228,6 @@ void decode_and_visualize(Decoder & decoder,
           1.5, Scalar(255, 255, 255));
 
   img_id++;
-  imwrite(to_string(img_id) + "-mv.jpg", mv_mat);
   imwrite(to_string(img_id) + "-residue.jpg", residue_mat);
 
   prev_residue_mean = frame_residue_mean;
