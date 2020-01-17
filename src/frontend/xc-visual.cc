@@ -49,7 +49,8 @@
 using namespace std;
 using namespace cv;
 
-unsigned width, height, width_in_mb, height_in_mb;
+static unsigned width, height, width_in_mb, height_in_mb;
+static unsigned img_id = 0;
 
 void usage_error(const string & program_name)
 {
@@ -109,9 +110,12 @@ double mse(const Mat & m1, const Mat & m2)
 string fixed_precision(double num)
 {
   std::stringstream stream;
-  stream << fixed << setprecision(2) << num;
+  stream << fixed << setprecision(1) << num;
   return stream.str();
 }
+
+static double prev_residue_mean = 0;
+static double prev_pixel_mse = 0;
 
 template<class FrameHeaderType, class MacroblockType>
 void decode_and_visualize(Decoder & decoder,
@@ -129,7 +133,9 @@ void decode_and_visualize(Decoder & decoder,
   VP8Raster temp_raster(width, height);
 
   /* convert the current raster to OpenCV Mat (YUV to BGR) */
-  Mat bgr = convert_yuv_to_bgr(raster);
+  Mat curr_mat = convert_yuv_to_bgr(raster);
+  Mat mv_mat = curr_mat.clone();
+  Mat residue_mat = curr_mat.clone();
 
   vector<vector<uint32_t>> residue(height_in_mb, vector<uint32_t>(width_in_mb));
 
@@ -141,7 +147,6 @@ void decode_and_visualize(Decoder & decoder,
       int curr_row = mb_row * 16;
 
       if (not macroblock.inter_coded()) {
-        circle(bgr, Point(curr_col, curr_row), 1, Scalar(0, 0, 0));
         return;
       }
 
@@ -155,7 +160,7 @@ void decode_and_visualize(Decoder & decoder,
       int prev_col = curr_col + (mv.x() >> 3);
       int prev_row = curr_row + (mv.y() >> 3);
 
-      arrowedLine(bgr, Point(prev_col, prev_row), Point(curr_col, curr_row),
+      arrowedLine(mv_mat, Point(prev_col, prev_row), Point(curr_col, curr_row),
                   Scalar(255, 255, 255));
 
       /* record residue */
@@ -169,6 +174,7 @@ void decode_and_visualize(Decoder & decoder,
     }
   );
 
+  uint64_t frame_residue_sum = 0;
   unsigned stride = 8;
   for (unsigned r = 0; r + stride < height_in_mb; r += stride) {
     for (unsigned c = 0; c + stride < width_in_mb; c += stride) {
@@ -178,17 +184,37 @@ void decode_and_visualize(Decoder & decoder,
           residue_sum += residue[i][j];
         }
       }
-      double residue_mean = (double) residue_sum / (16 * 16 * stride * stride);
+      frame_residue_sum += residue_sum;
 
-      putText(bgr, fixed_precision(residue_mean),
-              Point(c * 16 + 16, r * 16 + 16), FONT_HERSHEY_COMPLEX_SMALL,
-              1.0, Scalar(0, 255, 0));
+      double residue_mean = (double) residue_sum / (16 * 16 * stride * stride);
+      putText(residue_mat, fixed_precision(residue_mean),
+              Point(c * 16 + 10, r * 16 + 20), FONT_HERSHEY_COMPLEX_SMALL,
+              0.7, Scalar(0, 255, 0));
     }
   }
 
-  /* display Mat */
-  imshow("xc-visual", bgr);
-  waitKey(0);
+  double frame_residue_mean = (double) frame_residue_sum / (width * height);
+  string text = "Avg residue: " + fixed_precision(frame_residue_mean) + " ("
+                + fixed_precision(frame_residue_mean - prev_residue_mean) + ")";
+  putText(residue_mat, text, Point(10, 50), FONT_HERSHEY_COMPLEX_SMALL,
+          1.5, Scalar(255, 255, 255));
+
+  double frame_pixel_mse = 0;
+  if (not frame.header().key_frame()) {
+    frame_pixel_mse = mse(curr_mat, convert_yuv_to_bgr(reference));
+  }
+
+  text = "Pixel MSE: " + fixed_precision(frame_pixel_mse) + " ("
+         + fixed_precision(frame_pixel_mse - prev_pixel_mse) + ")";
+  putText(residue_mat, text, Point(10, 80), FONT_HERSHEY_COMPLEX_SMALL,
+          1.5, Scalar(255, 255, 255));
+
+  img_id++;
+  imwrite(to_string(img_id) + "-mv.jpg", mv_mat);
+  imwrite(to_string(img_id) + "-residue.jpg", residue_mat);
+
+  prev_residue_mean = frame_residue_mean;
+  prev_pixel_mse = frame_pixel_mse;
 }
 
 int main(int argc, char * argv[])
