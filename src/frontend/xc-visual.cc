@@ -119,7 +119,23 @@ static double prev_pixel_mse = 0;
 
 void smooth_mv(vector<vector<pair<int, int>>> & mv)
 {
-  (void) mv;
+  vector<vector<pair<int, int>>> mv2 = mv;
+
+  for (unsigned r = 1; r < height_in_mb - 1; r++) {
+    for (unsigned c = 1; c < width_in_mb - 1; c++) {
+      int x_sum = 0;
+      int y_sum = 0;
+
+      for (int rd = -1; rd <= 1; rd++) {
+        for (int cd = -1; cd <= 1; cd++) {
+          x_sum += mv2[r + rd][c + cd].first;
+          y_sum += mv2[r + rd][c + cd].second;
+        }
+      }
+
+      mv[r][c] = {x_sum / 9, y_sum / 9};
+    }
+  }
 }
 
 template<class FrameHeaderType, class MacroblockType>
